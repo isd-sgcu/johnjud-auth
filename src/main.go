@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/isd-sgcu/johnjud-auth/src/config"
+	"github.com/isd-sgcu/johnjud-auth/src/database"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -77,7 +78,15 @@ func main() {
 		log.Fatal().
 			Err(err).
 			Str("service", "auth").
-			Msg("Failed to start service")
+			Msg("Failed to load config")
+	}
+
+	_, err = database.InitPostgresDatabase(&conf.Database, conf.App.Debug)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Str("service", "auth").
+			Msg("Failed to init postgres connection")
 	}
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%v", conf.App.Port))
