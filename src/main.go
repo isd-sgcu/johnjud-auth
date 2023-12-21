@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"github.com/isd-sgcu/johnjud-auth/src/config"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -70,7 +72,15 @@ func gracefulShutdown(ctx context.Context, timeout time.Duration, ops map[string
 }
 
 func main() {
-	lis, err := net.Listen("tcp", ":8081")
+	conf, err := config.LoadConfig()
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Str("service", "auth").
+			Msg("Failed to start service")
+	}
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%v", conf.App.Port))
 	if err != nil {
 		log.Fatal().
 			Err(err).
@@ -83,7 +93,7 @@ func main() {
 	go func() {
 		log.Info().
 			Str("service", "auth").
-			Msg("JohnJud auth starting at port 8081")
+			Msgf("JohnJud auth starting at port %v", conf.App.Port)
 
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatal().
