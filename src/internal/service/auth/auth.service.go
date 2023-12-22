@@ -4,17 +4,19 @@ import (
 	"context"
 	"github.com/isd-sgcu/johnjud-auth/src/config"
 	userRepo "github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
+	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/token"
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 )
 
 type serviceImpl struct {
 	authProto.UnimplementedAuthServiceServer
-	userRepo userRepo.Repository
-	config   config.App
+	userRepo     userRepo.Repository
+	tokenService token.Service
+	config       config.App
 }
 
-func NewService(userRepo userRepo.Repository, config config.App) *serviceImpl {
-	return &serviceImpl{userRepo: userRepo, config: config}
+func NewService(userRepo userRepo.Repository, tokenService token.Service, config config.App) *serviceImpl {
+	return &serviceImpl{userRepo: userRepo, tokenService: tokenService, config: config}
 }
 
 func (s *serviceImpl) Validate(_ context.Context, request *authProto.ValidateRequest) (*authProto.ValidateResponse, error) {

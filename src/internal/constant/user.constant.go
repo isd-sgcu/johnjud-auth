@@ -3,6 +3,6 @@ package constant
 type Role string
 
 const (
-	USER  = "user"
-	ADMIN = "admin"
+	USER  Role = "user"
+	ADMIN Role = "admin"
 )

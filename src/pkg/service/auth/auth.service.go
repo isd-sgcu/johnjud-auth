@@ -4,9 +4,10 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/src/config"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/service/auth"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
+	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/token"
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 )
 
-func NewService(userRepo user.Repository, config config.App) authProto.AuthServiceServer {
-	return auth.NewService(userRepo, config)
+func NewService(userRepo user.Repository, tokenService token.Service, config config.App) authProto.AuthServiceServer {
+	return auth.NewService(userRepo, tokenService, config)
 }

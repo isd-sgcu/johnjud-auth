@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"github.com/isd-sgcu/johnjud-auth/src/config"
 	"github.com/isd-sgcu/johnjud-auth/src/database"
+	"github.com/isd-sgcu/johnjud-auth/src/internal/strategy"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/auth"
+	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/jwt"
+	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/token"
 	authPb "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -105,7 +108,13 @@ func main() {
 	grpcServer := grpc.NewServer()
 
 	userRepo := user.NewRepository(db)
-	authService := auth.NewService(userRepo, conf.App)
+
+	jwtStrategy := strategy.NewJwtStrategy(conf.Jwt.Secret)
+	jwtService := jwt.NewService(conf.Jwt, jwtStrategy)
+
+	tokenService := token.NewService(jwtService)
+
+	authService := auth.NewService(userRepo, tokenService, conf.App)
 
 	grpc_health_v1.RegisterHealthServer(grpcServer, health.NewServer())
 	authPb.RegisterAuthServiceServer(grpcServer, authService)
