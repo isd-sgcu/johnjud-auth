@@ -5,8 +5,13 @@ import (
 	"fmt"
 	"github.com/isd-sgcu/johnjud-auth/src/config"
 	"github.com/isd-sgcu/johnjud-auth/src/database"
+	"github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
+	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/auth"
+	authPb "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 	"net"
 	"os"
@@ -81,7 +86,7 @@ func main() {
 			Msg("Failed to load config")
 	}
 
-	_, err = database.InitPostgresDatabase(&conf.Database, conf.App.Debug)
+	db, err := database.InitPostgresDatabase(&conf.Database, conf.App.Debug)
 	if err != nil {
 		log.Fatal().
 			Err(err).
@@ -98,6 +103,13 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
+
+	userRepo := user.NewRepository(db)
+	authService := auth.NewService(userRepo, conf.App)
+
+	grpc_health_v1.RegisterHealthServer(grpcServer, health.NewServer())
+	authPb.RegisterAuthServiceServer(grpcServer, authService)
+
 	reflection.Register(grpcServer)
 	go func() {
 		log.Info().
