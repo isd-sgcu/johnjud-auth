@@ -2,7 +2,7 @@ package model
 
 type User struct {
 	Base
-	Email        string `json:"email" gorm:"type:tinytext, unique"`
+	Email        string `json:"email" gorm:"type:tinytext;unique"`
 	Password     string `json:"password" gorm:"type:tinytext"`
 	Firstname    string `json:"firstname" gorm:"type:tinytext"`
 	Lastname     string `json:"lastname" gorm:"type:tinytext"`
