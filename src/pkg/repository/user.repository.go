@@ -15,5 +15,5 @@ type UserRepository interface {
 }
 
 func NewUserRepository(db *gorm.DB) UserRepository {
-	return &repository.UserRepositoryImpl{Db: db}
+	return repository.NewUserRepository(db)
 }

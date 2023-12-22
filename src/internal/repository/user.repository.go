@@ -5,26 +5,30 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserRepositoryImpl struct {
+type userRepositoryImpl struct {
 	Db *gorm.DB
 }
 
-func (r *UserRepositoryImpl) FindAll(user *[]*model.User) error {
+func NewUserRepository(db *gorm.DB) *userRepositoryImpl {
+	return &userRepositoryImpl{Db: db}
+}
+
+func (r *userRepositoryImpl) FindAll(user *[]*model.User) error {
 	return r.Db.Find(&user).Error
 }
 
-func (r *UserRepositoryImpl) FindById(id string, user *model.User) error {
+func (r *userRepositoryImpl) FindById(id string, user *model.User) error {
 	return r.Db.First(&user, "id = ?", id).Error
 }
 
-func (r *UserRepositoryImpl) Create(user *model.User) error {
+func (r *userRepositoryImpl) Create(user *model.User) error {
 	return r.Db.Create(&user).Error
 }
 
-func (r *UserRepositoryImpl) Update(id string, user *model.User) error {
+func (r *userRepositoryImpl) Update(id string, user *model.User) error {
 	return r.Db.Where("id = ?", id).Updates(&user).Error
 }
 
-func (r *UserRepositoryImpl) Delete(id string) error {
+func (r *userRepositoryImpl) Delete(id string) error {
 	return r.Db.Delete(&model.User{}, "id = ?", id).Error
 }
