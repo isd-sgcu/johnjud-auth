@@ -20,9 +20,16 @@ type App struct {
 	Secret string `mapstructure:"secret"`
 }
 
+type Jwt struct {
+	Secret    string `mapstructure:"secret"`
+	ExpiresIn int    `mapstructure:"expires_in"`
+	Issuer    string `mapstructure:"issuer"`
+}
+
 type Config struct {
 	App      App      `mapstructure:"app"`
 	Database Database `mapstructure:"database"`
+	Jwt      Jwt      `mapstructure:"jwt"`
 }
 
 func LoadConfig() (config *Config, err error) {
