@@ -1,12 +1,12 @@
-package repository
+package user
 
 import (
 	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
-	"github.com/isd-sgcu/johnjud-auth/src/internal/repository"
+	"github.com/isd-sgcu/johnjud-auth/src/internal/repository/user"
 	"gorm.io/gorm"
 )
 
-type UserRepository interface {
+type Repository interface {
 	FindAll(user *[]*model.User) error
 	FindById(id string, user *model.User) error
 	Create(user *model.User) error
@@ -14,6 +14,6 @@ type UserRepository interface {
 	Delete(id string) error
 }
 
-func NewUserRepository(db *gorm.DB) UserRepository {
-	return repository.NewUserRepository(db)
+func NewRepository(db *gorm.DB) Repository {
+	return user.NewRepository(db)
 }

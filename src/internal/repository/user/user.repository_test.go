@@ -1,4 +1,4 @@
-package repository
+package user
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ import (
 type UserRepositoryTest struct {
 	suite.Suite
 	db          *gorm.DB
-	userRepo    *UserRepositoryImpl
+	userRepo    *repositoryImpl
 	initialUser *model.User
 }
 
@@ -33,7 +33,7 @@ func (t *UserRepositoryTest) SetupTest() {
 	err = db.AutoMigrate(&model.User{})
 	assert.NoError(t.T(), err)
 
-	userRepository := &UserRepositoryImpl{Db: db}
+	userRepository := &repositoryImpl{Db: db}
 
 	initialUser := &model.User{
 		Email:        faker.Email(),
