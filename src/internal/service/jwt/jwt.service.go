@@ -3,7 +3,7 @@ package jwt
 import (
 	_jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/isd-sgcu/johnjud-auth/src/config"
-	"github.com/isd-sgcu/johnjud-auth/src/internal/strategy"
+	"github.com/isd-sgcu/johnjud-auth/src/pkg/strategy"
 )
 
 type serviceImpl struct {
@@ -11,8 +11,8 @@ type serviceImpl struct {
 	strategy strategy.JwtStrategy
 }
 
-func NewService(confif config.Jwt, strategy strategy.JwtStrategy) *serviceImpl {
-	return &serviceImpl{config: confif, strategy: strategy}
+func NewService(config config.Jwt, strategy strategy.JwtStrategy) *serviceImpl {
+	return &serviceImpl{config: config, strategy: strategy}
 }
 
 func (s *serviceImpl) SignAuth(userId string) (string, error) {
