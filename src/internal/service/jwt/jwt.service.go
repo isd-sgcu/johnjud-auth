@@ -42,7 +42,7 @@ func (s *serviceImpl) SignAuth(userId string) (string, error) {
 }
 
 func (s *serviceImpl) VerifyAuth(token string) (*_jwt.Token, error) {
-	return nil, nil
+	return s.jwtUtil.ParseToken(token, s.strategy.AuthDecode)
 }
 
 func (s *serviceImpl) GetConfig() *config.Jwt {

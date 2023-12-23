@@ -10,6 +10,7 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/src/mocks/utils"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"testing"
 	"time"
@@ -17,7 +18,11 @@ import (
 
 type JwtServiceTest struct {
 	suite.Suite
-	config config.Jwt
+	config      config.Jwt
+	userId      string
+	numericDate *jwt.NumericDate
+	payloads    tokenDto.AuthPayload
+	token       *jwt.Token
 }
 
 func TestJwtService(t *testing.T) {
@@ -31,14 +36,9 @@ func (t *JwtServiceTest) SetupTest() {
 		Issuer:    "testIssuer",
 	}
 
-	t.config = config
-}
-
-func (t *JwtServiceTest) TestSignAuthSuccess() {
 	userId := faker.UUIDDigit()
-	expected := "signedTokenStr"
-
 	numericDate := jwt.NewNumericDate(time.Now())
+
 	payloads := tokenDto.AuthPayload{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    t.config.Issuer,
@@ -47,6 +47,7 @@ func (t *JwtServiceTest) TestSignAuthSuccess() {
 		},
 		UserId: userId,
 	}
+
 	token := &jwt.Token{
 		Header: map[string]interface{}{
 			"typ": "JWT",
@@ -56,63 +57,78 @@ func (t *JwtServiceTest) TestSignAuthSuccess() {
 		Claims: payloads,
 	}
 
+	t.config = config
+	t.userId = userId
+	t.numericDate = numericDate
+	t.payloads = payloads
+	t.token = token
+}
+
+func (t *JwtServiceTest) TestSignAuthSuccess() {
+	expected := "signedTokenStr"
+
 	jwtStrategy := strategy.JwtStrategyMock{}
 	jwtUtil := utils.JwtUtilMock{}
 
-	jwtUtil.On("GetNumericDate").Return(numericDate)
-	jwtUtil.On("GenerateJwtToken", jwt.SigningMethodHS256, payloads).Return(token)
-	jwtUtil.On("SignedTokenString", token, t.config.Secret).Return(expected, nil)
+	jwtUtil.On("GetNumericDate", mock.AnythingOfType("time.Time")).Return(t.numericDate)
+	jwtUtil.On("GenerateJwtToken", jwt.SigningMethodHS256, t.payloads).Return(t.token)
+	jwtUtil.On("SignedTokenString", t.token, t.config.Secret).Return(expected, nil)
 
 	jwtSvc := NewService(t.config, &jwtStrategy, &jwtUtil)
-	actual, err := jwtSvc.SignAuth(userId)
+	actual, err := jwtSvc.SignAuth(t.userId)
 
 	assert.Nil(t.T(), err)
 	assert.Equal(t.T(), expected, actual)
 }
 
 func (t *JwtServiceTest) TestSignAuthSignedStringFailed() {
-	userId := faker.UUIDDigit()
 	signedTokenError := errors.New("Some Error")
 	expected := errors.New(fmt.Sprintf("Error while signing the token due to: %s", signedTokenError.Error()))
-
-	numericDate := jwt.NewNumericDate(time.Now())
-	payloads := tokenDto.AuthPayload{
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    t.config.Issuer,
-			ExpiresAt: numericDate,
-			IssuedAt:  numericDate,
-		},
-		UserId: userId,
-	}
-	token := &jwt.Token{
-		Header: map[string]interface{}{
-			"typ": "JWT",
-			"alg": jwt.SigningMethodHS256.Alg(),
-		},
-		Method: jwt.SigningMethodHS256,
-		Claims: payloads,
-	}
 
 	jwtStrategy := strategy.JwtStrategyMock{}
 	jwtUtil := utils.JwtUtilMock{}
 
-	jwtUtil.On("GetNumericDate").Return(numericDate)
-	jwtUtil.On("GenerateJwtToken", jwt.SigningMethodHS256, payloads).Return(token)
-	jwtUtil.On("SignedTokenString", token, t.config.Secret).Return("", signedTokenError)
+	jwtUtil.On("GetNumericDate", mock.AnythingOfType("time.Time")).Return(t.numericDate)
+	jwtUtil.On("GenerateJwtToken", jwt.SigningMethodHS256, t.payloads).Return(t.token)
+	jwtUtil.On("SignedTokenString", t.token, t.config.Secret).Return("", signedTokenError)
 
 	jwtSvc := NewService(t.config, &jwtStrategy, &jwtUtil)
-	actual, err := jwtSvc.SignAuth(userId)
+	actual, err := jwtSvc.SignAuth(t.userId)
 
 	assert.Equal(t.T(), "", actual)
 	assert.Equal(t.T(), expected.Error(), err.Error())
 }
 
 func (t *JwtServiceTest) TestVerifyAuthSuccess() {
+	tokenStr := "validSignedToken"
+	expected := t.token
 
+	jwtStrategy := strategy.JwtStrategyMock{}
+	jwtUtil := utils.JwtUtilMock{}
+
+	jwtUtil.On("ParseToken", tokenStr, mock.AnythingOfType("jwt.Keyfunc")).Return(expected, nil)
+
+	jwtSvc := NewService(t.config, &jwtStrategy, &jwtUtil)
+	actual, err := jwtSvc.VerifyAuth(tokenStr)
+
+	assert.Nil(t.T(), err)
+	assert.Equal(t.T(), *expected, *actual)
 }
 
 func (t *JwtServiceTest) TestVerifyAuthFailed() {
+	tokenStr := "invalidSignedToken"
+	expected := errors.New("invalid token")
 
+	jwtStrategy := strategy.JwtStrategyMock{}
+	jwtUtil := utils.JwtUtilMock{}
+
+	jwtUtil.On("ParseToken", tokenStr, mock.AnythingOfType("jwt.Keyfunc")).Return(nil, expected)
+
+	jwtSvc := NewService(t.config, &jwtStrategy, &jwtUtil)
+	actual, err := jwtSvc.VerifyAuth(tokenStr)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
 }
 
 func (t *JwtServiceTest) TestGetConfigSuccess() {
