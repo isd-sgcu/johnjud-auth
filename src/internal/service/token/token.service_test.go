@@ -20,6 +20,7 @@ import (
 type TokenServiceTest struct {
 	suite.Suite
 	userId        string
+	role          constant.Role
 	accessToken   string
 	refreshToken  *uuid.UUID
 	jwtConfig     *config.Jwt
@@ -32,6 +33,7 @@ func TestTokenService(t *testing.T) {
 
 func (t *TokenServiceTest) SetupTest() {
 	userId := faker.UUIDDigit()
+	role := constant.USER
 	accessToken := "testAccessToken"
 	refreshToken := uuid.New()
 	jwtConfig := &config.Jwt{
@@ -42,6 +44,7 @@ func (t *TokenServiceTest) SetupTest() {
 	validateToken := "testValidateToken"
 
 	t.userId = userId
+	t.role = role
 	t.accessToken = accessToken
 	t.refreshToken = &refreshToken
 	t.jwtConfig = jwtConfig
@@ -58,31 +61,31 @@ func (t *TokenServiceTest) TestCreateCredentialSuccess() {
 	jwtService := jwt.JwtServiceMock{}
 	uuidUtil := utils.UuidUtilMock{}
 
-	jwtService.On("SignAuth", t.userId).Return(t.accessToken, nil)
+	jwtService.On("SignAuth", t.userId, t.role).Return(t.accessToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
 	uuidUtil.On("GetNewUUID").Return(t.refreshToken)
 
 	tokenSvc := NewService(&jwtService, &uuidUtil)
-	actual, err := tokenSvc.CreateCredential(t.userId)
+	actual, err := tokenSvc.CreateCredential(t.userId, t.role)
 
 	assert.Nil(t.T(), err)
 	assert.Equal(t.T(), *expected, *actual)
 }
 
 func (t *TokenServiceTest) TestCreateCredentialFailed() {
-	signAuthError := errors.New("")
-	expected := errors.New("")
+	signAuthError := errors.New("Error while signing token")
+	expected := errors.New("Error while signing token")
 
 	jwtService := jwt.JwtServiceMock{}
 	uuidUtil := utils.UuidUtilMock{}
 
-	jwtService.On("SignAuth", t.userId).Return("", signAuthError)
+	jwtService.On("SignAuth", t.userId, t.role).Return("", signAuthError)
 
 	tokenSvc := NewService(&jwtService, &uuidUtil)
-	actual, err := tokenSvc.CreateCredential(t.userId)
+	actual, err := tokenSvc.CreateCredential(t.userId, t.role)
 
 	assert.Nil(t.T(), actual)
-	assert.Equal(t.T(), expected, err)
+	assert.Equal(t.T(), expected.Error(), err.Error())
 }
 
 func (t *TokenServiceTest) TestValidateSuccess() {
@@ -98,6 +101,7 @@ func (t *TokenServiceTest) TestValidateSuccess() {
 			IssuedAt:  _jwt.NewNumericDate(time.Now()),
 		},
 		UserId: t.userId,
+		Role:   t.role,
 	}
 
 	jwtToken := &_jwt.Token{
@@ -128,6 +132,7 @@ func (t *TokenServiceTest) TestValidateInvalidIssuer() {
 			IssuedAt:  _jwt.NewNumericDate(time.Now()),
 		},
 		UserId: t.userId,
+		Role:   t.role,
 	}
 
 	jwtToken := &_jwt.Token{
@@ -145,7 +150,7 @@ func (t *TokenServiceTest) TestValidateInvalidIssuer() {
 	actual, err := tokenSvc.Validate(t.validateToken)
 
 	assert.Nil(t.T(), actual)
-	assert.Equal(t.T(), expected, err)
+	assert.Equal(t.T(), expected.Error(), err.Error())
 }
 
 func (t *TokenServiceTest) TestValidateExpireToken() {
@@ -153,11 +158,12 @@ func (t *TokenServiceTest) TestValidateExpireToken() {
 
 	payloads := tokenDto.AuthPayload{
 		RegisteredClaims: _jwt.RegisteredClaims{
-			Issuer:    "InvalidIssuer",
+			Issuer:    t.jwtConfig.Issuer,
 			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * (-time.Duration(t.jwtConfig.ExpiresIn)))),
 			IssuedAt:  _jwt.NewNumericDate(time.Now()),
 		},
 		UserId: t.userId,
+		Role:   t.role,
 	}
 
 	jwtToken := &_jwt.Token{
@@ -175,7 +181,7 @@ func (t *TokenServiceTest) TestValidateExpireToken() {
 	actual, err := tokenSvc.Validate(t.validateToken)
 
 	assert.Nil(t.T(), actual)
-	assert.Equal(t.T(), expected, err)
+	assert.Equal(t.T(), expected.Error(), err.Error())
 }
 
 func (t *TokenServiceTest) TestValidateVerifyFailed() {
@@ -190,7 +196,7 @@ func (t *TokenServiceTest) TestValidateVerifyFailed() {
 	actual, err := tokenSvc.Validate(t.validateToken)
 
 	assert.Nil(t.T(), actual)
-	assert.Equal(t.T(), expected, err)
+	assert.Equal(t.T(), expected.Error(), err.Error())
 }
 
 func (t *TokenServiceTest) TestCreateRefreshTokenSuccess() {
