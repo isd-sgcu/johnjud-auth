@@ -5,6 +5,7 @@ import (
 	"github.com/go-faker/faker/v4"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/isd-sgcu/johnjud-auth/src/config"
+	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	tokenDto "github.com/isd-sgcu/johnjud-auth/src/internal/domain/dto/token"
 	"github.com/isd-sgcu/johnjud-auth/src/mocks/strategy"
 	"github.com/isd-sgcu/johnjud-auth/src/mocks/utils"
@@ -20,6 +21,7 @@ type JwtServiceTest struct {
 	suite.Suite
 	config      config.Jwt
 	userId      string
+	role        constant.Role
 	numericDate *jwt.NumericDate
 	payloads    tokenDto.AuthPayload
 	token       *jwt.Token
@@ -37,6 +39,7 @@ func (t *JwtServiceTest) SetupTest() {
 	}
 
 	userId := faker.UUIDDigit()
+	role := constant.USER
 	numericDate := jwt.NewNumericDate(time.Now())
 
 	payloads := tokenDto.AuthPayload{
@@ -46,6 +49,7 @@ func (t *JwtServiceTest) SetupTest() {
 			IssuedAt:  numericDate,
 		},
 		UserId: userId,
+		Role:   role,
 	}
 
 	token := &jwt.Token{
@@ -59,6 +63,7 @@ func (t *JwtServiceTest) SetupTest() {
 
 	t.config = config
 	t.userId = userId
+	t.role = role
 	t.numericDate = numericDate
 	t.payloads = payloads
 	t.token = token
@@ -75,7 +80,7 @@ func (t *JwtServiceTest) TestSignAuthSuccess() {
 	jwtUtil.On("SignedTokenString", t.token, t.config.Secret).Return(expected, nil)
 
 	jwtSvc := NewService(t.config, &jwtStrategy, &jwtUtil)
-	actual, err := jwtSvc.SignAuth(t.userId)
+	actual, err := jwtSvc.SignAuth(t.userId, t.role)
 
 	assert.Nil(t.T(), err)
 	assert.Equal(t.T(), expected, actual)
@@ -93,7 +98,7 @@ func (t *JwtServiceTest) TestSignAuthSignedStringFailed() {
 	jwtUtil.On("SignedTokenString", t.token, t.config.Secret).Return("", signedTokenError)
 
 	jwtSvc := NewService(t.config, &jwtStrategy, &jwtUtil)
-	actual, err := jwtSvc.SignAuth(t.userId)
+	actual, err := jwtSvc.SignAuth(t.userId, t.role)
 
 	assert.Equal(t.T(), "", actual)
 	assert.Equal(t.T(), expected.Error(), err.Error())

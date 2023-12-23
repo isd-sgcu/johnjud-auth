@@ -12,5 +12,6 @@ type UserCredential struct {
 
 type AuthPayload struct {
 	jwt.RegisteredClaims
-	UserId string `json:"user_id"`
+	UserId string        `json:"user_id"`
+	Role   constant.Role `json:"role"`
 }

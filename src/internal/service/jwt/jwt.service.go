@@ -4,6 +4,7 @@ import (
 	"fmt"
 	_jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/isd-sgcu/johnjud-auth/src/config"
+	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	tokenDto "github.com/isd-sgcu/johnjud-auth/src/internal/domain/dto/token"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/utils"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/strategy"
@@ -21,7 +22,7 @@ func NewService(config config.Jwt, strategy strategy.JwtStrategy, jwtUtil utils.
 	return &serviceImpl{config: config, strategy: strategy, jwtUtil: jwtUtil}
 }
 
-func (s *serviceImpl) SignAuth(userId string) (string, error) {
+func (s *serviceImpl) SignAuth(userId string, role constant.Role) (string, error) {
 	payloads := tokenDto.AuthPayload{
 		RegisteredClaims: _jwt.RegisteredClaims{
 			Issuer:    s.config.Issuer,
@@ -29,6 +30,7 @@ func (s *serviceImpl) SignAuth(userId string) (string, error) {
 			IssuedAt:  s.jwtUtil.GetNumericDate(time.Now()),
 		},
 		UserId: userId,
+		Role:   role,
 	}
 
 	token := s.jwtUtil.GenerateJwtToken(_jwt.SigningMethodHS256, payloads)
