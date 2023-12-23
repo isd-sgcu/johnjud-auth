@@ -3,6 +3,7 @@ package jwt
 import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/isd-sgcu/johnjud-auth/src/config"
+	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -10,8 +11,8 @@ type JwtServiceMock struct {
 	mock.Mock
 }
 
-func (m *JwtServiceMock) SignAuth(userId string) (string, error) {
-	args := m.Called(userId)
+func (m *JwtServiceMock) SignAuth(userId string, role constant.Role) (string, error) {
+	args := m.Called(userId, role)
 	if args.Get(0) != "" {
 		return args.Get(0).(string), nil
 	}
