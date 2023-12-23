@@ -52,7 +52,7 @@ func (t *TokenServiceTest) SetupTest() {
 }
 
 func (t *TokenServiceTest) TestCreateCredentialSuccess() {
-	expected := &authProto.Credential{
+	expected := authProto.Credential{
 		AccessToken:  t.accessToken,
 		RefreshToken: t.refreshToken.String(),
 		ExpiresIn:    int32(t.jwtConfig.ExpiresIn),
@@ -69,7 +69,7 @@ func (t *TokenServiceTest) TestCreateCredentialSuccess() {
 	actual, err := tokenSvc.CreateCredential(t.userId, t.role)
 
 	assert.Nil(t.T(), err)
-	assert.Equal(t.T(), *expected, *actual)
+	assert.Equal(t.T(), expected, *actual)
 }
 
 func (t *TokenServiceTest) TestCreateCredentialFailed() {
