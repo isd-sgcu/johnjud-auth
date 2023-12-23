@@ -12,20 +12,24 @@ type IJwtUtil interface {
 	ParseToken(tokenStr string, keyFunc jwt.Keyfunc) (*jwt.Token, error)
 }
 
-type JwtUtil struct{}
+type jwtUtilImpl struct{}
 
-func (u *JwtUtil) GenerateJwtToken(method jwt.SigningMethod, payloads jwt.Claims) *jwt.Token {
+func NewJwtUtil() *jwtUtilImpl {
+	return &jwtUtilImpl{}
+}
+
+func (u *jwtUtilImpl) GenerateJwtToken(method jwt.SigningMethod, payloads jwt.Claims) *jwt.Token {
 	return jwt.NewWithClaims(method, payloads)
 }
 
-func (u *JwtUtil) GetNumericDate(time time.Time) *jwt.NumericDate {
+func (u *jwtUtilImpl) GetNumericDate(time time.Time) *jwt.NumericDate {
 	return jwt.NewNumericDate(time)
 }
 
-func (u *JwtUtil) SignedTokenString(token *jwt.Token, secret string) (string, error) {
+func (u *jwtUtilImpl) SignedTokenString(token *jwt.Token, secret string) (string, error) {
 	return token.SignedString([]byte(secret))
 }
 
-func (u *JwtUtil) ParseToken(tokenStr string, keyFunc jwt.Keyfunc) (*jwt.Token, error) {
+func (u *jwtUtilImpl) ParseToken(tokenStr string, keyFunc jwt.Keyfunc) (*jwt.Token, error) {
 	return jwt.Parse(tokenStr, keyFunc)
 }
