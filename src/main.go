@@ -6,6 +6,7 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/src/config"
 	"github.com/isd-sgcu/johnjud-auth/src/database"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/strategy"
+	"github.com/isd-sgcu/johnjud-auth/src/internal/utils"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/auth"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/jwt"
@@ -110,7 +111,8 @@ func main() {
 	userRepo := user.NewRepository(db)
 
 	jwtStrategy := strategy.NewJwtStrategy(conf.Jwt.Secret)
-	jwtService := jwt.NewService(conf.Jwt, jwtStrategy)
+	jwtUtil := utils.NewJwtUtil()
+	jwtService := jwt.NewService(conf.Jwt, jwtStrategy, jwtUtil)
 
 	tokenService := token.NewService(jwtService)
 

@@ -33,7 +33,7 @@ func (t *UserRepositoryTest) SetupTest() {
 	err = db.AutoMigrate(&model.User{})
 	assert.NoError(t.T(), err)
 
-	userRepository := &repositoryImpl{Db: db}
+	userRepository := NewRepository(db)
 
 	initialUser := &model.User{
 		Email:        faker.Email(),
