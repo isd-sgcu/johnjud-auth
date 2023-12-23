@@ -14,7 +14,7 @@ func NewService(jwtService jwt.Service) *serviceImpl {
 	return &serviceImpl{jwtService: jwtService}
 }
 
-func (s *serviceImpl) CreateCredential(userId string, secret string) (*authProto.Credential, error) {
+func (s *serviceImpl) CreateCredential(userId string, role string) (*authProto.Credential, error) {
 	return nil, nil
 }
 

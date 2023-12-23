@@ -8,7 +8,7 @@ import (
 )
 
 type Service interface {
-	CreateCredential(userId string, secret string) (*authProto.Credential, error)
+	CreateCredential(userId string, role string) (*authProto.Credential, error)
 	Validate(token string) (*tokenDto.UserCredential, error)
 }
 
