@@ -1,6 +1,7 @@
 package token
 
 import (
+	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	tokenDto "github.com/isd-sgcu/johnjud-auth/src/internal/domain/dto/token"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/service/token"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/jwt"
@@ -8,7 +9,7 @@ import (
 )
 
 type Service interface {
-	CreateCredential(userId string, role string) (*authProto.Credential, error)
+	CreateCredential(userId string, role constant.Role) (*authProto.Credential, error)
 	Validate(token string) (*tokenDto.UserCredential, error)
 }
 
