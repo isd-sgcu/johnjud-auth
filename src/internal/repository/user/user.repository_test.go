@@ -54,15 +54,15 @@ func (t *UserRepositoryTest) SetupTest() {
 }
 
 func (t *UserRepositoryTest) TestFindAllSuccess() {
-	var users []*model.User
-	err := t.userRepo.FindAll(&users)
+	users := &[]*model.User{}
+	err := t.userRepo.FindAll(users)
 	assert.NoError(t.T(), err)
-	assert.NotEmpty(t.T(), users)
+	assert.NotEmpty(t.T(), *users)
 }
 
 func (t *UserRepositoryTest) TestFindByIdSuccess() {
-	var user model.User
-	err := t.userRepo.FindById(t.initialUser.ID.String(), &user)
+	user := &model.User{}
+	err := t.userRepo.FindById(t.initialUser.ID.String(), user)
 	assert.NoError(t.T(), err)
 	assert.Equal(t.T(), t.initialUser.ID, user.ID)
 }
@@ -70,7 +70,7 @@ func (t *UserRepositoryTest) TestFindByIdSuccess() {
 func (t *UserRepositoryTest) TestFindByIdNotFound() {
 	notFoundId := faker.UUIDDigit()
 
-	var user *model.User
+	user := &model.User{}
 	err := t.userRepo.FindById(notFoundId, user)
 	assert.Equal(t.T(), gorm.ErrRecordNotFound, err)
 }

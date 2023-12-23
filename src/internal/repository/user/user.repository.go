@@ -14,19 +14,19 @@ func NewRepository(db *gorm.DB) *repositoryImpl {
 }
 
 func (r *repositoryImpl) FindAll(user *[]*model.User) error {
-	return r.Db.Find(&user).Error
+	return r.Db.Find(user).Error
 }
 
 func (r *repositoryImpl) FindById(id string, user *model.User) error {
-	return r.Db.First(&user, "id = ?", id).Error
+	return r.Db.First(user, "id = ?", id).Error
 }
 
 func (r *repositoryImpl) Create(user *model.User) error {
-	return r.Db.Create(&user).Error
+	return r.Db.Create(user).Error
 }
 
 func (r *repositoryImpl) Update(id string, user *model.User) error {
-	return r.Db.Where("id = ?", id).Updates(&user).Error
+	return r.Db.Where("id = ?", id).Updates(user).Error
 }
 
 func (r *repositoryImpl) Delete(id string) error {
