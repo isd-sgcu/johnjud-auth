@@ -22,7 +22,7 @@ func (m *JwtUtilMock) GetNumericDate(time time.Time) *jwt.NumericDate {
 
 func (m *JwtUtilMock) SignedTokenString(token *jwt.Token, secret string) (string, error) {
 	args := m.Called(token, secret)
-	if args.Get(0) != nil {
+	if args.Get(0) != "" {
 		return args.Get(0).(string), nil
 	}
 
