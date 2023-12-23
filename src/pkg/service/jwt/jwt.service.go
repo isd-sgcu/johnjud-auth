@@ -4,7 +4,7 @@ import (
 	_jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/isd-sgcu/johnjud-auth/src/config"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/service/jwt"
-	"github.com/isd-sgcu/johnjud-auth/src/internal/strategy"
+	"github.com/isd-sgcu/johnjud-auth/src/pkg/strategy"
 )
 
 type Service interface {
