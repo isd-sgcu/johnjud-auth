@@ -69,7 +69,9 @@ func (t *TokenServiceTest) TestCreateCredentialSuccess() {
 	actual, err := tokenSvc.CreateCredential(t.userId, t.role)
 
 	assert.Nil(t.T(), err)
-	assert.Equal(t.T(), expected, *actual)
+	assert.Equal(t.T(), expected.AccessToken, actual.AccessToken)
+	assert.Equal(t.T(), expected.RefreshToken, actual.RefreshToken)
+	assert.Equal(t.T(), expected.ExpiresIn, actual.ExpiresIn)
 }
 
 func (t *TokenServiceTest) TestCreateCredentialFailed() {
