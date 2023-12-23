@@ -114,7 +114,8 @@ func main() {
 	jwtUtil := utils.NewJwtUtil()
 	jwtService := jwt.NewService(conf.Jwt, jwtStrategy, jwtUtil)
 
-	tokenService := token.NewService(jwtService)
+	uuidUtil := utils.NewUuidUtil()
+	tokenService := token.NewService(jwtService, uuidUtil)
 
 	authService := auth.NewService(userRepo, tokenService, conf.App)
 
