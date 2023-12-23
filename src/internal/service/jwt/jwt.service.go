@@ -46,5 +46,5 @@ func (s *serviceImpl) VerifyAuth(token string) (*_jwt.Token, error) {
 }
 
 func (s *serviceImpl) GetConfig() *config.Jwt {
-	return nil
+	return &s.config
 }

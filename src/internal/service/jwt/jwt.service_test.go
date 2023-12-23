@@ -132,5 +132,13 @@ func (t *JwtServiceTest) TestVerifyAuthFailed() {
 }
 
 func (t *JwtServiceTest) TestGetConfigSuccess() {
+	expected := &t.config
 
+	jwtStrategy := strategy.JwtStrategyMock{}
+	jwtUtil := utils.JwtUtilMock{}
+
+	jwtSvc := NewService(t.config, &jwtStrategy, &jwtUtil)
+	actual := jwtSvc.GetConfig()
+
+	assert.Equal(t.T(), *expected, *actual)
 }
