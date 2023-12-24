@@ -3,7 +3,6 @@ package user
 import (
 	"context"
 
-	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
 	userRepo "github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
 	proto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/user/v1"
@@ -57,20 +56,12 @@ func (s *serviceImpl) Delete(_ context.Context, request *proto.DeleteUserRequest
 }
 
 func RawToDto(in *model.User) *proto.User {
-	var role string
-	switch in.Role {
-	case constant.ADMIN:
-		role = "admin"
-	case constant.USER:
-		role = "user"
-	}
-
 	return &proto.User{
 		Id:        in.ID.String(),
 		Email:     in.Email,
 		Password:  in.Password,
 		Firstname: in.Firstname,
 		Lastname:  in.Lastname,
-		Role:      role,
+		Role:      string(in.Role),
 	}
 }

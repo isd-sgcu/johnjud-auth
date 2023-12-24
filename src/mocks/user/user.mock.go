@@ -9,11 +9,31 @@ type RepositoryMock struct {
 	mock.Mock
 }
 
-func (r *RepositoryMock) FindOne(id string, result *model.User) error {
+func (r *RepositoryMock) FindAll(in *[]*model.User) error {
+	args := r.Called(in)
+
+	if args.Get(0) != nil {
+		*in = *args.Get(0).(*[]*model.User)
+	}
+
+	return args.Error(1)
+}
+
+func (r *RepositoryMock) FindById(id string, result *model.User) error {
 	args := r.Called(id, result)
 
 	if args.Get(0) != nil {
 		*result = *args.Get(0).(*model.User)
+	}
+
+	return args.Error(1)
+}
+
+func (r *RepositoryMock) Create(in *model.User) error {
+	args := r.Called(in)
+
+	if args.Get(0) != nil {
+		*in = *args.Get(0).(*model.User)
 	}
 
 	return args.Error(1)
