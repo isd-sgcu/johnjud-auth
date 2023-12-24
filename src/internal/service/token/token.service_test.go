@@ -7,7 +7,7 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/src/config"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	tokenDto "github.com/isd-sgcu/johnjud-auth/src/internal/domain/dto/token"
-	"github.com/isd-sgcu/johnjud-auth/src/mocks/jwt"
+	"github.com/isd-sgcu/johnjud-auth/src/mocks/service/jwt"
 	"github.com/isd-sgcu/johnjud-auth/src/mocks/utils"
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	"github.com/pkg/errors"
