@@ -17,9 +17,9 @@ func (m *BcryptUtilMock) GenerateHashedPassword(password string) (string, error)
 
 func (m *BcryptUtilMock) CompareHashedPassword(hashedPassword string, plainPassword string) error {
 	args := m.Called(hashedPassword, plainPassword)
-	if args.Get(0) != nil {
+	if args.Get(0) == nil {
 		return nil
 	}
 
-	return args.Error(1)
+	return args.Error(0)
 }
