@@ -117,7 +117,7 @@ func main() {
 	uuidUtil := utils.NewUuidUtil()
 	tokenService := token.NewService(jwtService, uuidUtil)
 
-	authService := auth.NewService(userRepo, tokenService, conf.App)
+	authService := auth.NewService(userRepo, tokenService)
 
 	grpc_health_v1.RegisterHealthServer(grpcServer, health.NewServer())
 	authPb.RegisterAuthServiceServer(grpcServer, authService)

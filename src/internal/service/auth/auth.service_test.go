@@ -1,14 +1,12 @@
 package auth
 
 import (
-	"github.com/isd-sgcu/johnjud-auth/src/config"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
 
 type AuthServiceTest struct {
 	suite.Suite
-	config *config.App
 }
 
 func TestAuthService(t *testing.T) {

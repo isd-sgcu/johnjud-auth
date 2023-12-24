@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"github.com/isd-sgcu/johnjud-auth/src/config"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/utils"
 	userRepo "github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/token"
@@ -14,12 +13,11 @@ type serviceImpl struct {
 	userRepo     userRepo.Repository
 	tokenService token.Service
 	bcryptUtil   utils.IBcryptUtil
-	config       config.App
 }
 
-func NewService(userRepo userRepo.Repository, tokenService token.Service, config config.App) *serviceImpl {
+func NewService(userRepo userRepo.Repository, tokenService token.Service) *serviceImpl {
 	bcryptUtil := utils.NewBcryptUtil()
-	return &serviceImpl{userRepo: userRepo, tokenService: tokenService, bcryptUtil: bcryptUtil, config: config}
+	return &serviceImpl{userRepo: userRepo, tokenService: tokenService, bcryptUtil: bcryptUtil}
 }
 
 func (s *serviceImpl) Validate(_ context.Context, request *authProto.ValidateRequest) (*authProto.ValidateResponse, error) {
