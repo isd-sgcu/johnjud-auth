@@ -20,17 +20,28 @@ func NewService(userRepo userRepo.Repository, tokenService token.Service, config
 }
 
 func (s *serviceImpl) Validate(_ context.Context, request *authProto.ValidateRequest) (*authProto.ValidateResponse, error) {
+	// call tokenService.Validate
 	return nil, nil
 }
 
 func (s *serviceImpl) RefreshToken(_ context.Context, request *authProto.RefreshTokenRequest) (*authProto.RefreshTokenResponse, error) {
+	// find user with refreshToken
+	// create new Credential
+	// update refreshToken in db
 	return nil, nil
 }
 
 func (s *serviceImpl) Signup(_ context.Context, request *authProto.SignupRequest) (*authProto.SignupResponse, error) {
+	// hash password with bcrypt
+	// initialize model.User
+	// create User in db
 	return nil, nil
 }
 
 func (s *serviceImpl) SignIn(_ context.Context, request *authProto.SignInRequest) (*authProto.SignInResponse, error) {
+	// find user with email
+	// compare password with hashed password
+	// if matched, then call tokenService.CreateCredential
+	// update refreshToken in db
 	return nil, nil
 }
