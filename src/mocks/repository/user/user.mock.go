@@ -12,7 +12,7 @@ type UserRepositoryMock struct {
 func (m *UserRepositoryMock) FindAll(user *[]*model.User) error {
 	args := m.Called(user)
 	if args.Get(0) != nil {
-		user = args.Get(0).(*[]*model.User)
+		*user = *args.Get(0).(*[]*model.User)
 		return nil
 	}
 
@@ -22,7 +22,7 @@ func (m *UserRepositoryMock) FindAll(user *[]*model.User) error {
 func (m *UserRepositoryMock) FindById(id string, user *model.User) error {
 	args := m.Called(id, user)
 	if args.Get(0) != nil {
-		user = args.Get(0).(*model.User)
+		*user = *args.Get(0).(*model.User)
 		return nil
 	}
 
@@ -32,7 +32,7 @@ func (m *UserRepositoryMock) FindById(id string, user *model.User) error {
 func (m *UserRepositoryMock) Create(user *model.User) error {
 	args := m.Called(user)
 	if args.Get(0) != nil {
-		user = args.Get(0).(*model.User)
+		*user = *args.Get(0).(*model.User)
 		return nil
 	}
 
@@ -42,7 +42,7 @@ func (m *UserRepositoryMock) Create(user *model.User) error {
 func (m *UserRepositoryMock) Update(id string, user *model.User) error {
 	args := m.Called(id, user)
 	if args.Get(0) != nil {
-		user = args.Get(0).(*model.User)
+		*user = *args.Get(0).(*model.User)
 		return nil
 	}
 
