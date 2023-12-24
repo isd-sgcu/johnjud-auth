@@ -76,6 +76,21 @@ func (t *UserRepositoryTest) TestFindByIdNotFound() {
 	assert.Equal(t.T(), gorm.ErrRecordNotFound, err)
 }
 
+func (t *UserRepositoryTest) TestFindByEmailSuccess() {
+	user := &model.User{}
+	email := t.initialUser.Email
+	err := t.userRepo.FindByEmail(email, user)
+	assert.NoError(t.T(), err)
+	assert.Equal(t.T(), t.initialUser.ID, user.ID)
+}
+
+func (t *UserRepositoryTest) TestFindByEmailNotFound() {
+	user := &model.User{}
+	notFoundEmail := faker.Email()
+	err := t.userRepo.FindByEmail(notFoundEmail, user)
+	assert.Equal(t.T(), gorm.ErrRecordNotFound, err)
+}
+
 func (t *UserRepositoryTest) TestCreateSuccess() {
 	createUser := &model.User{
 		Email:        faker.Email(),
