@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"github.com/isd-sgcu/johnjud-auth/src/config"
+	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"
@@ -19,6 +20,11 @@ func InitPostgresDatabase(conf *config.Database, isDebug bool) (db *gorm.DB, err
 	}
 
 	db, err = gorm.Open(postgres.Open(dsn), gormConf)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.AutoMigrate(&model.User{})
 	if err != nil {
 		return nil, err
 	}

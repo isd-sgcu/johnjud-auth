@@ -108,16 +108,16 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 
-	userRepo := user.NewRepository(db)
-
-	jwtStrategy := strategy.NewJwtStrategy(conf.Jwt.Secret)
 	jwtUtil := utils.NewJwtUtil()
-	jwtService := jwt.NewService(conf.Jwt, jwtStrategy, jwtUtil)
-
 	uuidUtil := utils.NewUuidUtil()
-	tokenService := token.NewService(jwtService, uuidUtil)
+	bcryptUtil := utils.NewBcryptUtil()
 
-	authService := auth.NewService(userRepo, tokenService, conf.App)
+	userRepo := user.NewRepository(db)
+	jwtStrategy := strategy.NewJwtStrategy(conf.Jwt.Secret)
+
+	jwtService := jwt.NewService(conf.Jwt, jwtStrategy, jwtUtil)
+	tokenService := token.NewService(jwtService, uuidUtil)
+	authService := auth.NewService(userRepo, tokenService, bcryptUtil)
 
 	grpc_health_v1.RegisterHealthServer(grpcServer, health.NewServer())
 	authPb.RegisterAuthServiceServer(grpcServer, authService)
