@@ -2,10 +2,16 @@ package auth
 
 import (
 	"context"
+	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
+	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/utils"
 	userRepo "github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/token"
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
+	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"gorm.io/gorm"
 )
 
 type serviceImpl struct {
@@ -32,10 +38,33 @@ func (s *serviceImpl) RefreshToken(_ context.Context, request *authProto.Refresh
 }
 
 func (s *serviceImpl) Signup(_ context.Context, request *authProto.SignupRequest) (*authProto.SignupResponse, error) {
-	// hash password with bcrypt
-	// initialize model.User
-	// create User in db
-	return nil, nil
+	hashPassword, err := s.bcryptUtil.GenerateHashedPassword(request.Password)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "Internal server error")
+	}
+
+	createUser := &model.User{
+		Email:        request.Email,
+		Password:     hashPassword,
+		Firstname:    request.FirstName,
+		Lastname:     request.LastName,
+		Role:         constant.USER,
+		RefreshToken: "",
+	}
+	err = s.userRepo.Create(createUser)
+	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return nil, status.Error(codes.AlreadyExists, "Duplicate email")
+		}
+		return nil, status.Error(codes.Internal, "Internal server error")
+	}
+
+	return &authProto.SignupResponse{
+		Id:        createUser.ID.String(),
+		FirstName: createUser.Firstname,
+		LastName:  createUser.Lastname,
+		Email:     createUser.Email,
+	}, nil
 }
 
 func (s *serviceImpl) SignIn(_ context.Context, request *authProto.SignInRequest) (*authProto.SignInResponse, error) {
