@@ -92,7 +92,7 @@ func (t *AuthServiceTest) TestSignupSuccess() {
 func (t *AuthServiceTest) TestSignupHashPasswordFailed() {
 	hashPasswordErr := errors.New("Hash password error")
 
-	expected := status.Error(codes.Internal, "Internal server error")
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
 
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
@@ -123,7 +123,7 @@ func (t *AuthServiceTest) TestSignupCreateUserDuplicateConstraint() {
 	}
 	createUserErr := gorm.ErrDuplicatedKey
 
-	expected := status.Error(codes.AlreadyExists, "Duplicate email")
+	expected := status.Error(codes.AlreadyExists, constant.DuplicateEmailErrorMessage)
 
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
@@ -155,7 +155,7 @@ func (t *AuthServiceTest) TestSignupCreateUserInternalFailed() {
 	}
 	createUserErr := errors.New("Internal server error")
 
-	expected := status.Error(codes.Internal, "Internal server error")
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
 
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}

@@ -40,7 +40,7 @@ func (s *serviceImpl) RefreshToken(_ context.Context, request *authProto.Refresh
 func (s *serviceImpl) Signup(_ context.Context, request *authProto.SignupRequest) (*authProto.SignupResponse, error) {
 	hashPassword, err := s.bcryptUtil.GenerateHashedPassword(request.Password)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "Internal server error")
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
 	createUser := &model.User{
@@ -54,9 +54,9 @@ func (s *serviceImpl) Signup(_ context.Context, request *authProto.SignupRequest
 	err = s.userRepo.Create(createUser)
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return nil, status.Error(codes.AlreadyExists, "Duplicate email")
+			return nil, status.Error(codes.AlreadyExists, constant.DuplicateEmailErrorMessage)
 		}
-		return nil, status.Error(codes.Internal, "Internal server error")
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
 	return &authProto.SignupResponse{
