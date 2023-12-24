@@ -12,7 +12,7 @@ import (
 func InitPostgresDatabase(conf *config.Database, isDebug bool) (db *gorm.DB, err error) {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", conf.Host, strconv.Itoa(conf.Port), conf.Username, conf.Password, conf.Name, conf.SSL)
 
-	gormConf := &gorm.Config{}
+	gormConf := &gorm.Config{TranslateError: true}
 
 	if !isDebug {
 		gormConf.Logger = gormLogger.Default.LogMode(gormLogger.Silent)

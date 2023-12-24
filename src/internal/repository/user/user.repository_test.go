@@ -25,7 +25,7 @@ func TestUserRepository(t *testing.T) {
 
 func (t *UserRepositoryTest) SetupTest() {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", "localhost", "5433", "root", "root", "johnjud_test_db", "")
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true})
 
 	assert.NoError(t.T(), err)
 
@@ -101,7 +101,7 @@ func (t *UserRepositoryTest) TestCreateDuplicateEmail() {
 	}
 
 	err := t.userRepo.Create(createUser)
-	assert.Error(t.T(), err)
+	assert.Equal(t.T(), gorm.ErrDuplicatedKey, err)
 }
 
 func (t *UserRepositoryTest) TestUpdateSuccess() {
@@ -141,7 +141,7 @@ func (t *UserRepositoryTest) TestUpdateDuplicateEmail() {
 	}
 
 	err = t.userRepo.Update(t.initialUser.ID.String(), updateUser)
-	assert.Error(t.T(), err)
+	assert.Equal(t.T(), gorm.ErrDuplicatedKey, err)
 }
 
 func (t *UserRepositoryTest) TestDeleteSuccess() {
