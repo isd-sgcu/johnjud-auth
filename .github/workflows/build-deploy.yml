@@ -23,6 +23,9 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      - name: Start Test Database Container
+        run: docker-compose -f docker-compose-unittest.yaml up -d
+
       - name: Vet
         run: |
           go vet ./...

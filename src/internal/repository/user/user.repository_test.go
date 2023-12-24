@@ -7,7 +7,7 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"testing"
 )
@@ -24,8 +24,9 @@ func TestUserRepository(t *testing.T) {
 }
 
 func (t *UserRepositoryTest) SetupTest() {
-	dsn := "file:memory:?cache=shared"
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", "localhost", "5433", "root", "root", "johnjud_test_db", "")
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+
 	assert.NoError(t.T(), err)
 
 	_ = db.Migrator().DropTable(&model.User{})
