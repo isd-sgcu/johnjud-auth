@@ -5,6 +5,7 @@ go 1.21.3
 toolchain go1.21.5
 
 require (
+	github.com/bxcodec/faker/v3 v3.8.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-faker/faker/v4 v4.2.0 // indirect
