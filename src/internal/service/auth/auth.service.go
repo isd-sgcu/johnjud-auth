@@ -68,9 +68,27 @@ func (s *serviceImpl) Signup(_ context.Context, request *authProto.SignupRequest
 }
 
 func (s *serviceImpl) SignIn(_ context.Context, request *authProto.SignInRequest) (*authProto.SignInResponse, error) {
-	// find user with email
-	// compare password with hashed password
-	// if matched, then call tokenService.CreateCredential
-	// update refreshToken in db
-	return nil, nil
+	user := &model.User{}
+	err := s.userRepo.FindByEmail(request.Email, user)
+	if err != nil {
+		return nil, status.Error(codes.PermissionDenied, constant.IncorrectEmailPasswordErrorMessage)
+	}
+
+	err = s.bcryptUtil.CompareHashedPassword(user.Password, request.Password)
+	if err != nil {
+		return nil, status.Error(codes.PermissionDenied, constant.IncorrectEmailPasswordErrorMessage)
+	}
+
+	credential, err := s.tokenService.CreateCredential(user.ID.String(), user.Role)
+	if err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	updateUser := &model.User{RefreshToken: credential.RefreshToken}
+	err = s.userRepo.Update(user.ID.String(), updateUser)
+	if err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	return &authProto.SignInResponse{Credential: credential}, nil
 }

@@ -29,6 +29,16 @@ func (m *UserRepositoryMock) FindById(id string, user *model.User) error {
 	return args.Error(1)
 }
 
+func (m *UserRepositoryMock) FindByEmail(email string, user *model.User) error {
+	args := m.Called(email, user)
+	if args.Get(0) != nil {
+		*user = *args.Get(0).(*model.User)
+		return nil
+	}
+
+	return args.Error(1)
+}
+
 func (m *UserRepositoryMock) Create(user *model.User) error {
 	args := m.Called(user)
 	if args.Get(0) != nil {
