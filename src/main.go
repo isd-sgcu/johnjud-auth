@@ -98,6 +98,14 @@ func main() {
 			Msg("Failed to init postgres connection")
 	}
 
+	cacheDb, err := database.InitRedisConnection(&conf.Redis)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Str("service", "auth").
+			Msg("Failed to init redis connection")
+	}
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%v", conf.App.Port))
 	if err != nil {
 		log.Fatal().
@@ -140,6 +148,16 @@ func main() {
 		"server": func(ctx context.Context) error {
 			grpcServer.GracefulStop()
 			return nil
+		},
+		"database": func(ctx context.Context) error {
+			sqlDB, err := db.DB()
+			if err != nil {
+				return nil
+			}
+			return sqlDB.Close()
+		},
+		"cache": func(ctx context.Context) error {
+			return cacheDb.Close()
 		},
 	})
 

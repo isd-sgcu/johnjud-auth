@@ -26,10 +26,18 @@ type Jwt struct {
 	Issuer    string `mapstructure:"issuer"`
 }
 
+type Redis struct {
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Password string `mapstructure:"password"`
+	Dbnum    int    `mapstructure:"dbnum"`
+}
+
 type Config struct {
 	App      App      `mapstructure:"app"`
 	Database Database `mapstructure:"database"`
 	Jwt      Jwt      `mapstructure:"jwt"`
+	Redis    Redis    `mapstructure:"redis"`
 }
 
 func LoadConfig() (config *Config, err error) {
