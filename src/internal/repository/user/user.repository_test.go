@@ -7,7 +7,7 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"testing"
 )
@@ -24,8 +24,9 @@ func TestUserRepository(t *testing.T) {
 }
 
 func (t *UserRepositoryTest) SetupTest() {
-	dsn := "file:memory:?cache=shared"
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", "localhost", "5433", "root", "root", "johnjud_test_db", "")
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true})
+
 	assert.NoError(t.T(), err)
 
 	_ = db.Migrator().DropTable(&model.User{})
@@ -75,6 +76,21 @@ func (t *UserRepositoryTest) TestFindByIdNotFound() {
 	assert.Equal(t.T(), gorm.ErrRecordNotFound, err)
 }
 
+func (t *UserRepositoryTest) TestFindByEmailSuccess() {
+	user := &model.User{}
+	email := t.initialUser.Email
+	err := t.userRepo.FindByEmail(email, user)
+	assert.NoError(t.T(), err)
+	assert.Equal(t.T(), t.initialUser.ID, user.ID)
+}
+
+func (t *UserRepositoryTest) TestFindByEmailNotFound() {
+	user := &model.User{}
+	notFoundEmail := faker.Email()
+	err := t.userRepo.FindByEmail(notFoundEmail, user)
+	assert.Equal(t.T(), gorm.ErrRecordNotFound, err)
+}
+
 func (t *UserRepositoryTest) TestCreateSuccess() {
 	createUser := &model.User{
 		Email:        faker.Email(),
@@ -100,7 +116,7 @@ func (t *UserRepositoryTest) TestCreateDuplicateEmail() {
 	}
 
 	err := t.userRepo.Create(createUser)
-	assert.Error(t.T(), err)
+	assert.Equal(t.T(), gorm.ErrDuplicatedKey, err)
 }
 
 func (t *UserRepositoryTest) TestUpdateSuccess() {
@@ -140,7 +156,7 @@ func (t *UserRepositoryTest) TestUpdateDuplicateEmail() {
 	}
 
 	err = t.userRepo.Update(t.initialUser.ID.String(), updateUser)
-	assert.Error(t.T(), err)
+	assert.Equal(t.T(), gorm.ErrDuplicatedKey, err)
 }
 
 func (t *UserRepositoryTest) TestDeleteSuccess() {

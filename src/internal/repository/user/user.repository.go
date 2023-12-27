@@ -21,6 +21,10 @@ func (r *repositoryImpl) FindById(id string, user *model.User) error {
 	return r.Db.First(user, "id = ?", id).Error
 }
 
+func (r *repositoryImpl) FindByEmail(email string, user *model.User) error {
+	return r.Db.First(user, "email = ?", email).Error
+}
+
 func (r *repositoryImpl) Create(user *model.User) error {
 	return r.Db.Create(user).Error
 }
