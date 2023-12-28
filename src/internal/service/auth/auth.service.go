@@ -51,12 +51,11 @@ func (s *serviceImpl) Signup(_ context.Context, request *authProto.SignUpRequest
 	}
 
 	createUser := &model.User{
-		Email:        request.Email,
-		Password:     hashPassword,
-		Firstname:    request.FirstName,
-		Lastname:     request.LastName,
-		Role:         constant.USER,
-		RefreshToken: "",
+		Email:     request.Email,
+		Password:  hashPassword,
+		Firstname: request.FirstName,
+		Lastname:  request.LastName,
+		Role:      constant.USER,
 	}
 	err = s.userRepo.Create(createUser)
 	if err != nil {
@@ -87,12 +86,6 @@ func (s *serviceImpl) SignIn(_ context.Context, request *authProto.SignInRequest
 	}
 
 	credential, err := s.tokenService.CreateCredential(user.ID.String(), user.Role)
-	if err != nil {
-		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
-	}
-
-	updateUser := &model.User{RefreshToken: credential.RefreshToken}
-	err = s.userRepo.Update(user.ID.String(), updateUser)
 	if err != nil {
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
