@@ -10,7 +10,7 @@ import (
 )
 
 type Service interface {
-	SignAuth(userId string, role constant.Role) (string, error)
+	SignAuth(userId string, role constant.Role, authSessionId string) (string, error)
 	VerifyAuth(token string) (*_jwt.Token, error)
 	GetConfig() *config.Jwt
 }

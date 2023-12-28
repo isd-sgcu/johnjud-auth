@@ -12,6 +12,18 @@ type UserCredential struct {
 
 type AuthPayload struct {
 	jwt.RegisteredClaims
-	UserId string        `json:"user_id"`
-	Role   constant.Role `json:"role"`
+	UserId        string        `json:"user_id"`
+	Role          constant.Role `json:"role"`
+	AuthSessionID string        `json:"auth_session_id"`
+}
+
+type AccessTokenCache struct {
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+type RefreshTokenCache struct {
+	AuthSessionID string        `json:"auth_session_id"`
+	UserId        string        `json:"user_id"`
+	Role          constant.Role `json:"role"`
 }
