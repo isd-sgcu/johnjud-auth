@@ -33,18 +33,18 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 	return m.recorder
 }
 
-// AddSetMember mocks base method.
-func (m *MockRepository) AddSetMember(key string, value interface{}) error {
+// DeleteValue mocks base method.
+func (m *MockRepository) DeleteValue(key string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddSetMember", key, value)
+	ret := m.ctrl.Call(m, "DeleteValue", key)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// AddSetMember indicates an expected call of AddSetMember.
-func (mr *MockRepositoryMockRecorder) AddSetMember(key, value interface{}) *gomock.Call {
+// DeleteValue indicates an expected call of DeleteValue.
+func (mr *MockRepositoryMockRecorder) DeleteValue(key interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddSetMember", reflect.TypeOf((*MockRepository)(nil).AddSetMember), key, value)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteValue", reflect.TypeOf((*MockRepository)(nil).DeleteValue), key)
 }
 
 // GetValue mocks base method.
@@ -59,21 +59,6 @@ func (m *MockRepository) GetValue(key string, value interface{}) error {
 func (mr *MockRepositoryMockRecorder) GetValue(key, value interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetValue", reflect.TypeOf((*MockRepository)(nil).GetValue), key, value)
-}
-
-// IsSetMember mocks base method.
-func (m *MockRepository) IsSetMember(key string, value interface{}) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsSetMember", key, value)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// IsSetMember indicates an expected call of IsSetMember.
-func (mr *MockRepositoryMockRecorder) IsSetMember(key, value interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsSetMember", reflect.TypeOf((*MockRepository)(nil).IsSetMember), key, value)
 }
 
 // SetValue mocks base method.
