@@ -27,16 +27,38 @@ func NewService(jwtService jwt.Service, accessTokenCache cache.Repository, refre
 	}
 }
 
-func (s *serviceImpl) CreateCredential(userId string, role constant.Role) (*authProto.Credential, error) {
-	accessToken, err := s.jwtService.SignAuth(userId, role)
+func (s *serviceImpl) CreateCredential(userId string, role constant.Role, authSessionId string) (*authProto.Credential, error) {
+	accessToken, err := s.jwtService.SignAuth(userId, role, authSessionId)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken := s.CreateRefreshToken()
+	jwtConf := s.jwtService.GetConfig()
+
+	accessTokenCache := &tokenDto.AccessTokenCache{
+		Token:        accessToken,
+		RefreshToken: refreshToken,
+	}
+	err = s.accessTokenCache.SetValue(userId, accessTokenCache, jwtConf.ExpiresIn)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshTokenCache := &tokenDto.RefreshTokenCache{
+		AuthSessionID: authSessionId,
+		UserId:        userId,
+		Role:          role,
+	}
+	err = s.refreshTokenCache.SetValue(refreshToken, refreshTokenCache, jwtConf.RefreshTokenTTL)
 	if err != nil {
 		return nil, err
 	}
 
 	credential := &authProto.Credential{
 		AccessToken:  accessToken,
-		RefreshToken: s.CreateRefreshToken(),
-		ExpiresIn:    int32(s.jwtService.GetConfig().ExpiresIn),
+		RefreshToken: refreshToken,
+		ExpiresIn:    int32(jwtConf.ExpiresIn),
 	}
 
 	return credential, nil

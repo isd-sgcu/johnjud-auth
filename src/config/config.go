@@ -21,9 +21,10 @@ type App struct {
 }
 
 type Jwt struct {
-	Secret    string `mapstructure:"secret"`
-	ExpiresIn int    `mapstructure:"expires_in"`
-	Issuer    string `mapstructure:"issuer"`
+	Secret          string `mapstructure:"secret"`
+	ExpiresIn       int    `mapstructure:"expires_in"`
+	RefreshTokenTTL int    `mapstructure:"refresh_token_ttl"`
+	Issuer          string `mapstructure:"issuer"`
 }
 
 type Redis struct {

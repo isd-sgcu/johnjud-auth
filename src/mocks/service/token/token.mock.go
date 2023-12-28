@@ -11,8 +11,8 @@ type TokenServiceMock struct {
 	mock.Mock
 }
 
-func (m *TokenServiceMock) CreateCredential(userId string, role constant.Role) (*authProto.Credential, error) {
-	args := m.Called(userId, role)
+func (m *TokenServiceMock) CreateCredential(userId string, role constant.Role, authSessionId string) (*authProto.Credential, error) {
+	args := m.Called(userId, role, authSessionId)
 	if args.Get(0) != nil {
 		return args.Get(0).(*authProto.Credential), nil
 	}
