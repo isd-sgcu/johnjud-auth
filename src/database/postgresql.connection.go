@@ -24,7 +24,7 @@ func InitPostgresDatabase(conf *config.Database, isDebug bool) (db *gorm.DB, err
 		return nil, err
 	}
 
-	err = db.AutoMigrate(&model.User{})
+	err = db.AutoMigrate(&model.User{}, &model.AuthSession{})
 	if err != nil {
 		return nil, err
 	}

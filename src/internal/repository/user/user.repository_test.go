@@ -30,19 +30,19 @@ func (t *UserRepositoryTest) SetupTest() {
 	assert.NoError(t.T(), err)
 
 	_ = db.Migrator().DropTable(&model.User{})
+	_ = db.Migrator().DropTable(&model.AuthSession{})
 
-	err = db.AutoMigrate(&model.User{})
+	err = db.AutoMigrate(&model.User{}, &model.AuthSession{})
 	assert.NoError(t.T(), err)
 
 	userRepository := NewRepository(db)
 
 	initialUser := &model.User{
-		Email:        faker.Email(),
-		Password:     faker.Password(),
-		Firstname:    faker.FirstName(),
-		Lastname:     faker.LastName(),
-		Role:         constant.USER,
-		RefreshToken: faker.Word(),
+		Email:     faker.Email(),
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
 	}
 	err = userRepository.Create(initialUser)
 	assert.NoError(t.T(), err)
@@ -93,12 +93,11 @@ func (t *UserRepositoryTest) TestFindByEmailNotFound() {
 
 func (t *UserRepositoryTest) TestCreateSuccess() {
 	createUser := &model.User{
-		Email:        faker.Email(),
-		Password:     faker.Password(),
-		Firstname:    faker.FirstName(),
-		Lastname:     faker.LastName(),
-		Role:         constant.USER,
-		RefreshToken: faker.Word(),
+		Email:     faker.Email(),
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
 	}
 
 	err := t.userRepo.Create(createUser)
@@ -107,12 +106,11 @@ func (t *UserRepositoryTest) TestCreateSuccess() {
 
 func (t *UserRepositoryTest) TestCreateDuplicateEmail() {
 	createUser := &model.User{
-		Email:        t.initialUser.Email,
-		Password:     faker.Password(),
-		Firstname:    faker.FirstName(),
-		Lastname:     faker.LastName(),
-		Role:         constant.USER,
-		RefreshToken: faker.Word(),
+		Email:     t.initialUser.Email,
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
 	}
 
 	err := t.userRepo.Create(createUser)
@@ -121,12 +119,11 @@ func (t *UserRepositoryTest) TestCreateDuplicateEmail() {
 
 func (t *UserRepositoryTest) TestUpdateSuccess() {
 	updateUser := &model.User{
-		Email:        faker.Email(),
-		Password:     faker.Password(),
-		Firstname:    faker.FirstName(),
-		Lastname:     faker.LastName(),
-		Role:         constant.USER,
-		RefreshToken: faker.Word(),
+		Email:     faker.Email(),
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
 	}
 
 	err := t.userRepo.Update(t.initialUser.ID.String(), updateUser)
@@ -135,24 +132,22 @@ func (t *UserRepositoryTest) TestUpdateSuccess() {
 
 func (t *UserRepositoryTest) TestUpdateDuplicateEmail() {
 	createUser := &model.User{
-		Email:        faker.Email(),
-		Password:     faker.Password(),
-		Firstname:    faker.FirstName(),
-		Lastname:     faker.LastName(),
-		Role:         constant.USER,
-		RefreshToken: faker.Word(),
+		Email:     faker.Email(),
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
 	}
 
 	err := t.userRepo.Create(createUser)
 	assert.NoError(t.T(), err)
 
 	updateUser := &model.User{
-		Email:        createUser.Email,
-		Password:     faker.Password(),
-		Firstname:    faker.FirstName(),
-		Lastname:     faker.LastName(),
-		Role:         constant.USER,
-		RefreshToken: faker.Word(),
+		Email:     createUser.Email,
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
 	}
 
 	err = t.userRepo.Update(t.initialUser.ID.String(), updateUser)
@@ -161,12 +156,11 @@ func (t *UserRepositoryTest) TestUpdateDuplicateEmail() {
 
 func (t *UserRepositoryTest) TestDeleteSuccess() {
 	createUser := &model.User{
-		Email:        faker.Email(),
-		Password:     faker.Password(),
-		Firstname:    faker.FirstName(),
-		Lastname:     faker.LastName(),
-		Role:         constant.USER,
-		RefreshToken: faker.Word(),
+		Email:     faker.Email(),
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
 	}
 
 	err := t.userRepo.Create(createUser)

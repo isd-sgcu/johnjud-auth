@@ -19,12 +19,13 @@ import (
 
 type JwtServiceTest struct {
 	suite.Suite
-	config      config.Jwt
-	userId      string
-	role        constant.Role
-	numericDate *jwt.NumericDate
-	payloads    tokenDto.AuthPayload
-	token       *jwt.Token
+	config        config.Jwt
+	userId        string
+	role          constant.Role
+	authSessionId string
+	numericDate   *jwt.NumericDate
+	payloads      tokenDto.AuthPayload
+	token         *jwt.Token
 }
 
 func TestJwtService(t *testing.T) {
@@ -40,6 +41,7 @@ func (t *JwtServiceTest) SetupTest() {
 
 	userId := faker.UUIDDigit()
 	role := constant.USER
+	authSessionId := faker.UUIDDigit()
 	numericDate := jwt.NewNumericDate(time.Now())
 
 	payloads := tokenDto.AuthPayload{
@@ -48,8 +50,9 @@ func (t *JwtServiceTest) SetupTest() {
 			ExpiresAt: numericDate,
 			IssuedAt:  numericDate,
 		},
-		UserId: userId,
-		Role:   role,
+		UserID:        userId,
+		Role:          role,
+		AuthSessionID: authSessionId,
 	}
 
 	token := &jwt.Token{
@@ -64,6 +67,7 @@ func (t *JwtServiceTest) SetupTest() {
 	t.config = config
 	t.userId = userId
 	t.role = role
+	t.authSessionId = authSessionId
 	t.numericDate = numericDate
 	t.payloads = payloads
 	t.token = token
@@ -80,7 +84,7 @@ func (t *JwtServiceTest) TestSignAuthSuccess() {
 	jwtUtil.On("SignedTokenString", t.token, t.config.Secret).Return(expected, nil)
 
 	jwtSvc := NewService(t.config, &jwtStrategy, &jwtUtil)
-	actual, err := jwtSvc.SignAuth(t.userId, t.role)
+	actual, err := jwtSvc.SignAuth(t.userId, t.role, t.authSessionId)
 
 	assert.Nil(t.T(), err)
 	assert.Equal(t.T(), expected, actual)
@@ -98,7 +102,7 @@ func (t *JwtServiceTest) TestSignAuthSignedStringFailed() {
 	jwtUtil.On("SignedTokenString", t.token, t.config.Secret).Return("", signedTokenError)
 
 	jwtSvc := NewService(t.config, &jwtStrategy, &jwtUtil)
-	actual, err := jwtSvc.SignAuth(t.userId, t.role)
+	actual, err := jwtSvc.SignAuth(t.userId, t.role, t.authSessionId)
 
 	assert.Equal(t.T(), "", actual)
 	assert.Equal(t.T(), expected.Error(), err.Error())

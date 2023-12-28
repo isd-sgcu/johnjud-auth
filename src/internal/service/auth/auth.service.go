@@ -2,10 +2,12 @@ package auth
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/utils"
-	userRepo "github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
+	"github.com/isd-sgcu/johnjud-auth/src/pkg/repository/auth"
+	"github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/token"
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	"github.com/pkg/errors"
@@ -16,13 +18,19 @@ import (
 
 type serviceImpl struct {
 	authProto.UnimplementedAuthServiceServer
-	userRepo     userRepo.Repository
+	authRepo     auth.Repository
+	userRepo     user.Repository
 	tokenService token.Service
 	bcryptUtil   utils.IBcryptUtil
 }
 
-func NewService(userRepo userRepo.Repository, tokenService token.Service, bcryptUtil utils.IBcryptUtil) *serviceImpl {
-	return &serviceImpl{userRepo: userRepo, tokenService: tokenService, bcryptUtil: bcryptUtil}
+func NewService(authRepo auth.Repository, userRepo user.Repository, tokenService token.Service, bcryptUtil utils.IBcryptUtil) *serviceImpl {
+	return &serviceImpl{
+		authRepo:     authRepo,
+		userRepo:     userRepo,
+		tokenService: tokenService,
+		bcryptUtil:   bcryptUtil,
+	}
 }
 
 func (s *serviceImpl) Validate(_ context.Context, request *authProto.ValidateRequest) (*authProto.ValidateResponse, error) {
@@ -37,19 +45,18 @@ func (s *serviceImpl) RefreshToken(_ context.Context, request *authProto.Refresh
 	return nil, nil
 }
 
-func (s *serviceImpl) Signup(_ context.Context, request *authProto.SignupRequest) (*authProto.SignupResponse, error) {
+func (s *serviceImpl) Signup(_ context.Context, request *authProto.SignUpRequest) (*authProto.SignUpResponse, error) {
 	hashPassword, err := s.bcryptUtil.GenerateHashedPassword(request.Password)
 	if err != nil {
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
 	createUser := &model.User{
-		Email:        request.Email,
-		Password:     hashPassword,
-		Firstname:    request.FirstName,
-		Lastname:     request.LastName,
-		Role:         constant.USER,
-		RefreshToken: "",
+		Email:     request.Email,
+		Password:  hashPassword,
+		Firstname: request.FirstName,
+		Lastname:  request.LastName,
+		Role:      constant.USER,
 	}
 	err = s.userRepo.Create(createUser)
 	if err != nil {
@@ -59,7 +66,7 @@ func (s *serviceImpl) Signup(_ context.Context, request *authProto.SignupRequest
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
-	return &authProto.SignupResponse{
+	return &authProto.SignUpResponse{
 		Id:        createUser.ID.String(),
 		FirstName: createUser.Firstname,
 		LastName:  createUser.Lastname,
@@ -79,16 +86,26 @@ func (s *serviceImpl) SignIn(_ context.Context, request *authProto.SignInRequest
 		return nil, status.Error(codes.PermissionDenied, constant.IncorrectEmailPasswordErrorMessage)
 	}
 
-	credential, err := s.tokenService.CreateCredential(user.ID.String(), user.Role)
-	if err != nil {
-		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
-	}
-
-	updateUser := &model.User{RefreshToken: credential.RefreshToken}
-	err = s.userRepo.Update(user.ID.String(), updateUser)
+	credential, err := s.createAuthSession(user.ID, user.Role)
 	if err != nil {
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
 	return &authProto.SignInResponse{Credential: credential}, nil
+}
+
+func (s *serviceImpl) SignOut(_ context.Context, request *authProto.SignOutRequest) (*authProto.SignOutResponse, error) {
+	return nil, nil
+}
+
+func (s *serviceImpl) createAuthSession(userId uuid.UUID, role constant.Role) (*authProto.Credential, error) {
+	createAuthSession := &model.AuthSession{
+		UserID: userId,
+	}
+	err := s.authRepo.Create(createAuthSession)
+	if err != nil {
+		return nil, errors.New("Internal server error")
+	}
+
+	return s.tokenService.CreateCredential(userId.String(), role, createAuthSession.ID.String())
 }

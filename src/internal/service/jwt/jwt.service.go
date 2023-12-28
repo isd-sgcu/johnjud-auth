@@ -22,15 +22,16 @@ func NewService(config config.Jwt, strategy strategy.JwtStrategy, jwtUtil utils.
 	return &serviceImpl{config: config, strategy: strategy, jwtUtil: jwtUtil}
 }
 
-func (s *serviceImpl) SignAuth(userId string, role constant.Role) (string, error) {
+func (s *serviceImpl) SignAuth(userId string, role constant.Role, authSessionId string) (string, error) {
 	payloads := tokenDto.AuthPayload{
 		RegisteredClaims: _jwt.RegisteredClaims{
 			Issuer:    s.config.Issuer,
 			ExpiresAt: s.jwtUtil.GetNumericDate(time.Now().Add(time.Second * time.Duration(s.config.ExpiresIn))),
 			IssuedAt:  s.jwtUtil.GetNumericDate(time.Now()),
 		},
-		UserId: userId,
-		Role:   role,
+		UserID:        userId,
+		Role:          role,
+		AuthSessionID: authSessionId,
 	}
 
 	token := s.jwtUtil.GenerateJwtToken(_jwt.SigningMethodHS256, payloads)
