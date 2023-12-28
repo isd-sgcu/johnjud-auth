@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
@@ -45,7 +46,7 @@ func (s *serviceImpl) RefreshToken(_ context.Context, request *authProto.Refresh
 	return nil, nil
 }
 
-func (s *serviceImpl) Signup(_ context.Context, request *authProto.SignUpRequest) (*authProto.SignUpResponse, error) {
+func (s *serviceImpl) SignUp(_ context.Context, request *authProto.SignUpRequest) (*authProto.SignUpResponse, error) {
 	hashPassword, err := s.bcryptUtil.GenerateHashedPassword(request.Password)
 	if err != nil {
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
