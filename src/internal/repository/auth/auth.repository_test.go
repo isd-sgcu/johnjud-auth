@@ -2,7 +2,6 @@ package auth
 
 import (
 	"fmt"
-	"github.com/go-faker/faker/v4"
 	"github.com/google/uuid"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
 	"github.com/stretchr/testify/assert"
@@ -42,10 +41,7 @@ func (t *AuthRepositoryTest) SetupTest() {
 
 func (t *AuthRepositoryTest) TestCreateSuccess() {
 	createAuthSession := &model.AuthSession{
-		UserID:    uuid.New(),
-		Hostname:  faker.Name(),
-		UserAgent: faker.Username(),
-		IPAddress: faker.IPv4(),
+		UserID: uuid.New(),
 	}
 
 	err := t.authRepo.Create(createAuthSession)
@@ -54,10 +50,7 @@ func (t *AuthRepositoryTest) TestCreateSuccess() {
 
 func (t *AuthRepositoryTest) TestDeleteSuccess() {
 	createAuthSession := &model.AuthSession{
-		UserID:    uuid.New(),
-		Hostname:  faker.Name(),
-		UserAgent: faker.Username(),
-		IPAddress: faker.IPv4(),
+		UserID: uuid.New(),
 	}
 
 	err := t.authRepo.Create(createAuthSession)

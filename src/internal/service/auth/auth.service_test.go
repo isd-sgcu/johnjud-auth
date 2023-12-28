@@ -202,10 +202,7 @@ func (t *AuthServiceTest) TestSignInSuccess() {
 		Role:      constant.USER,
 	}
 	newAuthSession := &model.AuthSession{
-		UserID:    existUser.ID,
-		Hostname:  "",
-		UserAgent: "",
-		IPAddress: "",
+		UserID: existUser.ID,
 	}
 	credential := &authProto.Credential{
 		AccessToken:  faker.Word(),
@@ -306,10 +303,7 @@ func (t *AuthServiceTest) TestSignInCreateAuthSessionFailed() {
 		Role:      constant.USER,
 	}
 	newAuthSession := &model.AuthSession{
-		UserID:    existUser.ID,
-		Hostname:  "",
-		UserAgent: "",
-		IPAddress: "",
+		UserID: existUser.ID,
 	}
 	createAuthSessionErr := errors.New("Internal server error")
 
@@ -348,10 +342,7 @@ func (t *AuthServiceTest) TestSignInCreateCredentialFailed() {
 		Role:      constant.USER,
 	}
 	newAuthSession := &model.AuthSession{
-		UserID:    existUser.ID,
-		Hostname:  "",
-		UserAgent: "",
-		IPAddress: "",
+		UserID: existUser.ID,
 	}
 	createCredentialErr := errors.New("Failed to create credential")
 

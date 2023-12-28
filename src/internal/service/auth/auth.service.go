@@ -100,10 +100,7 @@ func (s *serviceImpl) SignOut(_ context.Context, request *authProto.SignOutReque
 
 func (s *serviceImpl) createAuthSession(userId uuid.UUID, role constant.Role) (*authProto.Credential, error) {
 	createAuthSession := &model.AuthSession{
-		UserID:    userId,
-		Hostname:  "",
-		UserAgent: "",
-		IPAddress: "",
+		UserID: userId,
 	}
 	err := s.authRepo.Create(createAuthSession)
 	if err != nil {
