@@ -50,7 +50,7 @@ func (t *JwtServiceTest) SetupTest() {
 			ExpiresAt: numericDate,
 			IssuedAt:  numericDate,
 		},
-		UserId:        userId,
+		UserID:        userId,
 		Role:          role,
 		AuthSessionID: authSessionId,
 	}

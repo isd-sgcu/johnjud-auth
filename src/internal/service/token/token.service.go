@@ -47,7 +47,7 @@ func (s *serviceImpl) CreateCredential(userId string, role constant.Role, authSe
 
 	refreshTokenCache := &tokenDto.RefreshTokenCache{
 		AuthSessionID: authSessionId,
-		UserId:        userId,
+		UserID:        userId,
 		Role:          role,
 	}
 	err = s.refreshTokenCache.SetValue(refreshToken, refreshTokenCache, jwtConf.RefreshTokenTTL)
@@ -81,7 +81,7 @@ func (s *serviceImpl) Validate(token string) (*tokenDto.UserCredential, error) {
 	}
 
 	userCredential := &tokenDto.UserCredential{
-		UserId: payloads.UserId,
+		UserID: payloads.UserID,
 		Role:   payloads.Role,
 	}
 	return userCredential, nil

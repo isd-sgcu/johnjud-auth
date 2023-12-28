@@ -6,13 +6,13 @@ import (
 )
 
 type UserCredential struct {
-	UserId string        `json:"user_id"`
+	UserID string        `json:"user_id"`
 	Role   constant.Role `json:"role"`
 }
 
 type AuthPayload struct {
 	jwt.RegisteredClaims
-	UserId        string        `json:"user_id"`
+	UserID        string        `json:"user_id"`
 	Role          constant.Role `json:"role"`
 	AuthSessionID string        `json:"auth_session_id"`
 }
@@ -24,6 +24,6 @@ type AccessTokenCache struct {
 
 type RefreshTokenCache struct {
 	AuthSessionID string        `json:"auth_session_id"`
-	UserId        string        `json:"user_id"`
+	UserID        string        `json:"user_id"`
 	Role          constant.Role `json:"role"`
 }

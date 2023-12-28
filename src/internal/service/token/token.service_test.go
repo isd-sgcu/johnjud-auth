@@ -64,7 +64,7 @@ func (t *TokenServiceTest) TestCreateCredentialSuccess() {
 	}
 	refreshTokenCache := &tokenDto.RefreshTokenCache{
 		AuthSessionID: t.authSessionId,
-		UserId:        t.userId,
+		UserID:        t.userId,
 		Role:          t.role,
 	}
 
@@ -150,7 +150,7 @@ func (t *TokenServiceTest) TestCreateCredentialSetRefreshTokenFailed() {
 	}
 	refreshTokenCache := &tokenDto.RefreshTokenCache{
 		AuthSessionID: t.authSessionId,
-		UserId:        t.userId,
+		UserID:        t.userId,
 		Role:          t.role,
 	}
 	setCacheErr := errors.New("Internal server error")
@@ -178,7 +178,7 @@ func (t *TokenServiceTest) TestCreateCredentialSetRefreshTokenFailed() {
 
 func (t *TokenServiceTest) TestValidateSuccess() {
 	expected := &tokenDto.UserCredential{
-		UserId: t.userId,
+		UserID: t.userId,
 		Role:   constant.USER,
 	}
 
@@ -188,7 +188,7 @@ func (t *TokenServiceTest) TestValidateSuccess() {
 			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(t.jwtConfig.ExpiresIn))),
 			IssuedAt:  _jwt.NewNumericDate(time.Now()),
 		},
-		UserId: t.userId,
+		UserID: t.userId,
 		Role:   t.role,
 	}
 
@@ -223,7 +223,7 @@ func (t *TokenServiceTest) TestValidateInvalidIssuer() {
 			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(t.jwtConfig.ExpiresIn))),
 			IssuedAt:  _jwt.NewNumericDate(time.Now()),
 		},
-		UserId: t.userId,
+		UserID: t.userId,
 		Role:   t.role,
 	}
 
@@ -258,7 +258,7 @@ func (t *TokenServiceTest) TestValidateExpireToken() {
 			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * (-time.Duration(t.jwtConfig.ExpiresIn)))),
 			IssuedAt:  _jwt.NewNumericDate(time.Now()),
 		},
-		UserId: t.userId,
+		UserID: t.userId,
 		Role:   t.role,
 	}
 

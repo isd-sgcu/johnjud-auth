@@ -29,7 +29,7 @@ func (s *serviceImpl) SignAuth(userId string, role constant.Role, authSessionId 
 			ExpiresAt: s.jwtUtil.GetNumericDate(time.Now().Add(time.Second * time.Duration(s.config.ExpiresIn))),
 			IssuedAt:  s.jwtUtil.GetNumericDate(time.Now()),
 		},
-		UserId:        userId,
+		UserID:        userId,
 		Role:          role,
 		AuthSessionID: authSessionId,
 	}
