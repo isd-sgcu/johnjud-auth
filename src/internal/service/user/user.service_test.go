@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/isd-sgcu/johnjud-auth/src/config"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
-	mock "github.com/isd-sgcu/johnjud-auth/src/mocks/user"
+	mock "github.com/isd-sgcu/johnjud-auth/src/mocks/repository/user"
 	proto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/user/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -75,7 +75,7 @@ func (t *UserServiceTest) SetupTest() {
 func (t *UserServiceTest) TestFindOneSuccess() {
 	want := &proto.FindOneUserResponse{User: t.UserDto}
 
-	repo := &mock.RepositoryMock{}
+	repo := &mock.UserRepositoryMock{}
 	repo.On("FindById", t.User.ID.String(), &model.User{}).Return(t.User, nil)
 
 	srv := NewService(repo)
@@ -86,7 +86,7 @@ func (t *UserServiceTest) TestFindOneSuccess() {
 }
 
 func (t *UserServiceTest) TestFindOneNotFound() {
-	repo := &mock.RepositoryMock{}
+	repo := &mock.UserRepositoryMock{}
 	repo.On("FindById", t.User.ID.String(), &model.User{}).Return(nil, errors.New("Not found user"))
 
 	srv := NewService(repo)
@@ -102,7 +102,7 @@ func (t *UserServiceTest) TestFindOneNotFound() {
 func (t *UserServiceTest) TestUpdateSuccess() {
 	want := &proto.UpdateUserResponse{User: t.UserDto}
 
-	repo := &mock.RepositoryMock{}
+	repo := &mock.UserRepositoryMock{}
 	repo.On("Update", t.User.ID.String(), t.UpdateUser).Return(t.User, nil)
 
 	srv := NewService(repo)
@@ -113,7 +113,7 @@ func (t *UserServiceTest) TestUpdateSuccess() {
 }
 
 func (t *UserServiceTest) TestUpdateNotFound() {
-	repo := &mock.RepositoryMock{}
+	repo := &mock.UserRepositoryMock{}
 	repo.On("Update", t.User.ID.String(), t.UpdateUser).Return(nil, errors.New("Not found user"))
 
 	srv := NewService(repo)
@@ -129,7 +129,7 @@ func (t *UserServiceTest) TestUpdateNotFound() {
 func (t *UserServiceTest) TestDeleteSuccess() {
 	want := &proto.DeleteUserResponse{Success: true}
 
-	repo := &mock.RepositoryMock{}
+	repo := &mock.UserRepositoryMock{}
 	repo.On("Delete", t.User.ID.String()).Return(nil)
 
 	srv := NewService(repo)
@@ -140,7 +140,7 @@ func (t *UserServiceTest) TestDeleteSuccess() {
 }
 
 func (t *UserServiceTest) TestDeleteNotFound() {
-	repo := &mock.RepositoryMock{}
+	repo := &mock.UserRepositoryMock{}
 	repo.On("Delete", t.User.ID.String()).Return(errors.New("Not found user"))
 
 	srv := NewService(repo)
