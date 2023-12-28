@@ -14,6 +14,7 @@ type Service interface {
 	CreateCredential(userId string, role constant.Role, authSessionId string) (*authProto.Credential, error)
 	Validate(token string) (*tokenDto.UserCredential, error)
 	CreateRefreshToken() string
+	RemoveTokenCache(refreshToken string) error
 }
 
 func NewService(jwtService jwtSvc.Service, accessTokenCache cache.Repository, refreshTokenCache cache.Repository, uuidUtil utils.IUuidUtil) Service {

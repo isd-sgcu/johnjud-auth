@@ -84,7 +84,7 @@ func (s *serviceImpl) Validate(token string) (*tokenDto.UserCredential, error) {
 	err = s.accessTokenCache.GetValue(payloads.AuthSessionID, accessTokenCache)
 	if err != nil {
 		if err != redis.Nil {
-			return nil, errors.New("internal server error")
+			return nil, err
 		}
 		return nil, errors.New("invalid token")
 	}
@@ -97,11 +97,38 @@ func (s *serviceImpl) Validate(token string) (*tokenDto.UserCredential, error) {
 		UserID:        payloads.UserID,
 		Role:          payloads.Role,
 		AuthSessionID: payloads.AuthSessionID,
-		RefreshToken:  "",
+		RefreshToken:  accessTokenCache.RefreshToken,
 	}
 	return userCredential, nil
 }
 
 func (s *serviceImpl) CreateRefreshToken() string {
 	return s.uuidUtil.GetNewUUID().String()
+}
+
+func (s *serviceImpl) RemoveTokenCache(refreshToken string) error {
+	refreshTokenCache := &tokenDto.RefreshTokenCache{}
+	err := s.refreshTokenCache.GetValue(refreshToken, refreshTokenCache)
+	if err != nil {
+		if err != redis.Nil {
+			return err
+		}
+		return nil
+	}
+
+	err = s.refreshTokenCache.DeleteValue(refreshToken)
+	if err != nil {
+		if err != redis.Nil {
+			return err
+		}
+	}
+
+	err = s.accessTokenCache.DeleteValue(refreshTokenCache.AuthSessionID)
+	if err != nil {
+		if err != redis.Nil {
+			return err
+		}
+	}
+
+	return nil
 }
