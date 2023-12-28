@@ -5,6 +5,7 @@ import (
 	tokenDto "github.com/isd-sgcu/johnjud-auth/src/internal/domain/dto/token"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/service/token"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/utils"
+	"github.com/isd-sgcu/johnjud-auth/src/pkg/repository/cache"
 	jwtSvc "github.com/isd-sgcu/johnjud-auth/src/pkg/service/jwt"
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 )
@@ -15,6 +16,6 @@ type Service interface {
 	CreateRefreshToken() string
 }
 
-func NewService(jwtService jwtSvc.Service, uuidUtil utils.IUuidUtil) Service {
-	return token.NewService(jwtService, uuidUtil)
+func NewService(jwtService jwtSvc.Service, accessTokenCache cache.Repository, refreshTokenCache cache.Repository, uuidUtil utils.IUuidUtil) Service {
+	return token.NewService(jwtService, accessTokenCache, refreshTokenCache, uuidUtil)
 }

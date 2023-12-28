@@ -8,6 +8,7 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/src/internal/strategy"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/utils"
 	authRp "github.com/isd-sgcu/johnjud-auth/src/pkg/repository/auth"
+	cacheRp "github.com/isd-sgcu/johnjud-auth/src/pkg/repository/cache"
 	userRp "github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
 	authSvc "github.com/isd-sgcu/johnjud-auth/src/pkg/service/auth"
 	jwtSvc "github.com/isd-sgcu/johnjud-auth/src/pkg/service/jwt"
@@ -123,10 +124,13 @@ func main() {
 
 	authRepo := authRp.NewRepository(db)
 	userRepo := userRp.NewRepository(db)
-	jwtStrategy := strategy.NewJwtStrategy(conf.Jwt.Secret)
 
+	accessTokenCache := cacheRp.NewRepository(cacheDb)
+	refreshTokenCache := cacheRp.NewRepository(cacheDb)
+
+	jwtStrategy := strategy.NewJwtStrategy(conf.Jwt.Secret)
 	jwtService := jwtSvc.NewService(conf.Jwt, jwtStrategy, jwtUtil)
-	tokenService := tokenSvc.NewService(jwtService, uuidUtil)
+	tokenService := tokenSvc.NewService(jwtService, accessTokenCache, refreshTokenCache, uuidUtil)
 
 	authService := authSvc.NewService(authRepo, userRepo, tokenService, bcryptUtil)
 

@@ -3,10 +3,12 @@ package token
 import (
 	"github.com/go-faker/faker/v4"
 	_jwt "github.com/golang-jwt/jwt/v4"
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/isd-sgcu/johnjud-auth/src/config"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	tokenDto "github.com/isd-sgcu/johnjud-auth/src/internal/domain/dto/token"
+	mock_cache "github.com/isd-sgcu/johnjud-auth/src/mocks/repository/cache"
 	"github.com/isd-sgcu/johnjud-auth/src/mocks/service/jwt"
 	"github.com/isd-sgcu/johnjud-auth/src/mocks/utils"
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
@@ -58,14 +60,18 @@ func (t *TokenServiceTest) TestCreateCredentialSuccess() {
 		ExpiresIn:    int32(t.jwtConfig.ExpiresIn),
 	}
 
+	controller := gomock.NewController(t.T())
+
 	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("SignAuth", t.userId, t.role).Return(t.accessToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
 	uuidUtil.On("GetNewUUID").Return(t.refreshToken)
 
-	tokenSvc := NewService(&jwtService, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.CreateCredential(t.userId, t.role)
 
 	assert.Nil(t.T(), err)
@@ -78,12 +84,16 @@ func (t *TokenServiceTest) TestCreateCredentialFailed() {
 	signAuthError := errors.New("Error while signing token")
 	expected := errors.New("Error while signing token")
 
+	controller := gomock.NewController(t.T())
+
 	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("SignAuth", t.userId, t.role).Return("", signAuthError)
 
-	tokenSvc := NewService(&jwtService, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.CreateCredential(t.userId, t.role)
 
 	assert.Nil(t.T(), actual)
@@ -111,13 +121,17 @@ func (t *TokenServiceTest) TestValidateSuccess() {
 		Claims: payloads,
 	}
 
+	controller := gomock.NewController(t.T())
+
 	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("VerifyAuth", t.validateToken).Return(jwtToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
 
-	tokenSvc := NewService(&jwtService, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(t.validateToken)
 
 	assert.Nil(t.T(), err)
@@ -142,13 +156,17 @@ func (t *TokenServiceTest) TestValidateInvalidIssuer() {
 		Claims: payloads,
 	}
 
+	controller := gomock.NewController(t.T())
+
 	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("VerifyAuth", t.validateToken).Return(jwtToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
 
-	tokenSvc := NewService(&jwtService, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(t.validateToken)
 
 	assert.Nil(t.T(), actual)
@@ -173,13 +191,17 @@ func (t *TokenServiceTest) TestValidateExpireToken() {
 		Claims: payloads,
 	}
 
+	controller := gomock.NewController(t.T())
+
 	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("VerifyAuth", t.validateToken).Return(jwtToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
 
-	tokenSvc := NewService(&jwtService, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(t.validateToken)
 
 	assert.Nil(t.T(), actual)
@@ -189,12 +211,16 @@ func (t *TokenServiceTest) TestValidateExpireToken() {
 func (t *TokenServiceTest) TestValidateVerifyFailed() {
 	expected := errors.New("invalid token")
 
+	controller := gomock.NewController(t.T())
+
 	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("VerifyAuth", t.validateToken).Return(nil, expected)
 
-	tokenSvc := NewService(&jwtService, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(t.validateToken)
 
 	assert.Nil(t.T(), actual)
@@ -204,12 +230,16 @@ func (t *TokenServiceTest) TestValidateVerifyFailed() {
 func (t *TokenServiceTest) TestCreateRefreshTokenSuccess() {
 	expected := t.refreshToken.String()
 
+	controller := gomock.NewController(t.T())
+
 	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	uuidUtil.On("GetNewUUID").Return(t.refreshToken)
 
-	tokenSvc := NewService(&jwtService, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
 	actual := tokenSvc.CreateRefreshToken()
 
 	assert.Equal(t.T(), expected, actual)
