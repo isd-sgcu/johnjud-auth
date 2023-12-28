@@ -84,7 +84,7 @@ func (t *TokenServiceTest) TestCreateCredentialSuccess() {
 	jwtService.On("SignAuth", t.userId, t.role, t.authSessionId).Return(t.accessToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
 	uuidUtil.On("GetNewUUID").Return(t.refreshToken)
-	accessTokenRepo.EXPECT().SetValue(t.userId, accessTokenCache, t.jwtConfig.ExpiresIn).Return(nil)
+	accessTokenRepo.EXPECT().SetValue(t.authSessionId, accessTokenCache, t.jwtConfig.ExpiresIn).Return(nil)
 	refreshTokenRepo.EXPECT().SetValue(t.refreshToken.String(), refreshTokenCache, t.jwtConfig.RefreshTokenTTL).Return(nil)
 
 	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
@@ -134,7 +134,7 @@ func (t *TokenServiceTest) TestCreateCredentialSetAccessTokenFailed() {
 	jwtService.On("SignAuth", t.userId, t.role, t.authSessionId).Return(t.accessToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
 	uuidUtil.On("GetNewUUID").Return(t.refreshToken)
-	accessTokenRepo.EXPECT().SetValue(t.userId, accessTokenCache, t.jwtConfig.ExpiresIn).Return(setCacheErr)
+	accessTokenRepo.EXPECT().SetValue(t.authSessionId, accessTokenCache, t.jwtConfig.ExpiresIn).Return(setCacheErr)
 
 	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.CreateCredential(t.userId, t.role, t.authSessionId)
@@ -166,7 +166,7 @@ func (t *TokenServiceTest) TestCreateCredentialSetRefreshTokenFailed() {
 	jwtService.On("SignAuth", t.userId, t.role, t.authSessionId).Return(t.accessToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
 	uuidUtil.On("GetNewUUID").Return(t.refreshToken)
-	accessTokenRepo.EXPECT().SetValue(t.userId, accessTokenCache, t.jwtConfig.ExpiresIn).Return(nil)
+	accessTokenRepo.EXPECT().SetValue(t.authSessionId, accessTokenCache, t.jwtConfig.ExpiresIn).Return(nil)
 	refreshTokenRepo.EXPECT().SetValue(t.refreshToken.String(), refreshTokenCache, t.jwtConfig.RefreshTokenTTL).Return(setCacheErr)
 
 	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)

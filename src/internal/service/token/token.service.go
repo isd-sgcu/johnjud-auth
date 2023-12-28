@@ -40,7 +40,7 @@ func (s *serviceImpl) CreateCredential(userId string, role constant.Role, authSe
 		Token:        accessToken,
 		RefreshToken: refreshToken,
 	}
-	err = s.accessTokenCache.SetValue(userId, accessTokenCache, jwtConf.ExpiresIn)
+	err = s.accessTokenCache.SetValue(authSessionId, accessTokenCache, jwtConf.ExpiresIn)
 	if err != nil {
 		return nil, err
 	}
