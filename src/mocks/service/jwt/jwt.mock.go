@@ -11,8 +11,8 @@ type JwtServiceMock struct {
 	mock.Mock
 }
 
-func (m *JwtServiceMock) SignAuth(userId string, role constant.Role) (string, error) {
-	args := m.Called(userId, role)
+func (m *JwtServiceMock) SignAuth(userId string, role constant.Role, authSessionId string) (string, error) {
+	args := m.Called(userId, role, authSessionId)
 	if args.Get(0) != "" {
 		return args.Get(0).(string), nil
 	}

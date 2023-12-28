@@ -7,10 +7,12 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/src/database"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/strategy"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/utils"
-	"github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
-	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/auth"
-	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/jwt"
-	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/token"
+	authRp "github.com/isd-sgcu/johnjud-auth/src/pkg/repository/auth"
+	cacheRp "github.com/isd-sgcu/johnjud-auth/src/pkg/repository/cache"
+	userRp "github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
+	authSvc "github.com/isd-sgcu/johnjud-auth/src/pkg/service/auth"
+	jwtSvc "github.com/isd-sgcu/johnjud-auth/src/pkg/service/jwt"
+	tokenSvc "github.com/isd-sgcu/johnjud-auth/src/pkg/service/token"
 	authPb "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -98,6 +100,14 @@ func main() {
 			Msg("Failed to init postgres connection")
 	}
 
+	cacheDb, err := database.InitRedisConnection(&conf.Redis)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Str("service", "auth").
+			Msg("Failed to init redis connection")
+	}
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%v", conf.App.Port))
 	if err != nil {
 		log.Fatal().
@@ -112,12 +122,17 @@ func main() {
 	uuidUtil := utils.NewUuidUtil()
 	bcryptUtil := utils.NewBcryptUtil()
 
-	userRepo := user.NewRepository(db)
-	jwtStrategy := strategy.NewJwtStrategy(conf.Jwt.Secret)
+	authRepo := authRp.NewRepository(db)
+	userRepo := userRp.NewRepository(db)
 
-	jwtService := jwt.NewService(conf.Jwt, jwtStrategy, jwtUtil)
-	tokenService := token.NewService(jwtService, uuidUtil)
-	authService := auth.NewService(userRepo, tokenService, bcryptUtil)
+	accessTokenCache := cacheRp.NewRepository(cacheDb)
+	refreshTokenCache := cacheRp.NewRepository(cacheDb)
+
+	jwtStrategy := strategy.NewJwtStrategy(conf.Jwt.Secret)
+	jwtService := jwtSvc.NewService(conf.Jwt, jwtStrategy, jwtUtil)
+	tokenService := tokenSvc.NewService(jwtService, accessTokenCache, refreshTokenCache, uuidUtil)
+
+	authService := authSvc.NewService(authRepo, userRepo, tokenService, bcryptUtil)
 
 	grpc_health_v1.RegisterHealthServer(grpcServer, health.NewServer())
 	authPb.RegisterAuthServiceServer(grpcServer, authService)
@@ -140,6 +155,16 @@ func main() {
 		"server": func(ctx context.Context) error {
 			grpcServer.GracefulStop()
 			return nil
+		},
+		"database": func(ctx context.Context) error {
+			sqlDB, err := db.DB()
+			if err != nil {
+				return nil
+			}
+			return sqlDB.Close()
+		},
+		"cache": func(ctx context.Context) error {
+			return cacheDb.Close()
 		},
 	})
 
