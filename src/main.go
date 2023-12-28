@@ -3,6 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
+
 	"github.com/isd-sgcu/johnjud-auth/src/config"
 	"github.com/isd-sgcu/johnjud-auth/src/database"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/strategy"
@@ -11,18 +18,14 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/auth"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/jwt"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/token"
+	userSrv "github.com/isd-sgcu/johnjud-auth/src/pkg/service/user"
 	authPb "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
+	userPb "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/user/v1"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
-	"net"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-	"time"
 )
 
 type operation func(ctx context.Context) error
@@ -113,6 +116,8 @@ func main() {
 	bcryptUtil := utils.NewBcryptUtil()
 
 	userRepo := user.NewRepository(db)
+	userService := userSrv.NewService(userRepo)
+
 	jwtStrategy := strategy.NewJwtStrategy(conf.Jwt.Secret)
 
 	jwtService := jwt.NewService(conf.Jwt, jwtStrategy, jwtUtil)
@@ -121,6 +126,7 @@ func main() {
 
 	grpc_health_v1.RegisterHealthServer(grpcServer, health.NewServer())
 	authPb.RegisterAuthServiceServer(grpcServer, authService)
+	userPb.RegisterUserServiceServer(grpcServer, userService)
 
 	reflection.Register(grpcServer)
 	go func() {
