@@ -6,7 +6,7 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/service/jwt"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/utils"
-	"github.com/isd-sgcu/johnjud-auth/src/pkg/strategy"
+	jwtStg "github.com/isd-sgcu/johnjud-auth/src/pkg/strategy"
 )
 
 type Service interface {
@@ -15,6 +15,6 @@ type Service interface {
 	GetConfig() *config.Jwt
 }
 
-func NewService(config config.Jwt, strategy strategy.JwtStrategy, jwtUtil utils.IJwtUtil) Service {
+func NewService(config config.Jwt, strategy jwtStg.JwtStrategy, jwtUtil utils.IJwtUtil) Service {
 	return jwt.NewService(config, strategy, jwtUtil)
 }
