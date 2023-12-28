@@ -7,11 +7,11 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/src/database"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/strategy"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/utils"
-	"github.com/isd-sgcu/johnjud-auth/src/pkg/repository/cache"
-	"github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
-	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/auth"
-	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/jwt"
-	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/token"
+	authRp "github.com/isd-sgcu/johnjud-auth/src/pkg/repository/auth"
+	userRp "github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
+	authSvc "github.com/isd-sgcu/johnjud-auth/src/pkg/service/auth"
+	jwtSvc "github.com/isd-sgcu/johnjud-auth/src/pkg/service/jwt"
+	tokenSvc "github.com/isd-sgcu/johnjud-auth/src/pkg/service/token"
 	authPb "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -121,13 +121,14 @@ func main() {
 	uuidUtil := utils.NewUuidUtil()
 	bcryptUtil := utils.NewBcryptUtil()
 
-	userRepo := user.NewRepository(db)
+	authRepo := authRp.NewRepository(db)
+	userRepo := userRp.NewRepository(db)
 	jwtStrategy := strategy.NewJwtStrategy(conf.Jwt.Secret)
 
-	jwtService := jwt.NewService(conf.Jwt, jwtStrategy, jwtUtil)
-	tokenService := token.NewService(jwtService, uuidUtil)
-	cacheRepo := cache.NewRepository(cacheDb)
-	authService := auth.NewService(userRepo, tokenService, bcryptUtil, cacheRepo)
+	jwtService := jwtSvc.NewService(conf.Jwt, jwtStrategy, jwtUtil)
+	tokenService := tokenSvc.NewService(jwtService, uuidUtil)
+
+	authService := authSvc.NewService(authRepo, userRepo, tokenService, bcryptUtil)
 
 	grpc_health_v1.RegisterHealthServer(grpcServer, health.NewServer())
 	authPb.RegisterAuthServiceServer(grpcServer, authService)
