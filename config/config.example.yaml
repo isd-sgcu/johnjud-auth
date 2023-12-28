@@ -1,12 +1,12 @@
 app:
-  port: 8081
+  port: 3002
   debug: true
   secret: <secret>
 
 database:
   host: localhost
   port: 5432
-  name: johnjud-auth-db
+  name: johnjud_db
   username: root
   password: root
 
