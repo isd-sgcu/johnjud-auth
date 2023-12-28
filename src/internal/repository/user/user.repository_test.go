@@ -30,8 +30,9 @@ func (t *UserRepositoryTest) SetupTest() {
 	assert.NoError(t.T(), err)
 
 	_ = db.Migrator().DropTable(&model.User{})
+	_ = db.Migrator().DropTable(&model.AuthSession{})
 
-	err = db.AutoMigrate(&model.User{})
+	err = db.AutoMigrate(&model.User{}, &model.AuthSession{})
 	assert.NoError(t.T(), err)
 
 	userRepository := NewRepository(db)
