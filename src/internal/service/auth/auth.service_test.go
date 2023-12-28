@@ -3,9 +3,11 @@ package auth
 import (
 	"context"
 	"github.com/go-faker/faker/v4"
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
+	mock_cache "github.com/isd-sgcu/johnjud-auth/src/mocks/repository/cache"
 	"github.com/isd-sgcu/johnjud-auth/src/mocks/repository/user"
 	"github.com/isd-sgcu/johnjud-auth/src/mocks/service/token"
 	"github.com/isd-sgcu/johnjud-auth/src/mocks/utils"
@@ -80,14 +82,17 @@ func (t *AuthServiceTest) TestSignupSuccess() {
 		Email:     createdUser.Email,
 	}
 
+	controller := gomock.NewController(t.T())
+
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
+	cacheRepo := mock_cache.NewMockRepository(controller)
 
 	bcryptUtil.On("GenerateHashedPassword", t.signupRequest.Password).Return(hashedPassword, nil)
 	userRepo.On("Create", newUser).Return(createdUser, nil)
 
-	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil, cacheRepo)
 	actual, err := authSvc.Signup(t.ctx, t.signupRequest)
 
 	assert.Nil(t.T(), err)
@@ -99,13 +104,16 @@ func (t *AuthServiceTest) TestSignupHashPasswordFailed() {
 
 	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
 
+	controller := gomock.NewController(t.T())
+
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
+	cacheRepo := mock_cache.NewMockRepository(controller)
 
 	bcryptUtil.On("GenerateHashedPassword", t.signupRequest.Password).Return("", hashPasswordErr)
 
-	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil, cacheRepo)
 	actual, err := authSvc.Signup(t.ctx, t.signupRequest)
 
 	status, ok := status.FromError(err)
@@ -130,14 +138,17 @@ func (t *AuthServiceTest) TestSignupCreateUserDuplicateConstraint() {
 
 	expected := status.Error(codes.AlreadyExists, constant.DuplicateEmailErrorMessage)
 
+	controller := gomock.NewController(t.T())
+
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
+	cacheRepo := mock_cache.NewMockRepository(controller)
 
 	bcryptUtil.On("GenerateHashedPassword", t.signupRequest.Password).Return(hashedPassword, nil)
 	userRepo.On("Create", newUser).Return(nil, createUserErr)
 
-	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil, cacheRepo)
 	actual, err := authSvc.Signup(t.ctx, t.signupRequest)
 
 	status, ok := status.FromError(err)
@@ -162,14 +173,17 @@ func (t *AuthServiceTest) TestSignupCreateUserInternalFailed() {
 
 	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
 
+	controller := gomock.NewController(t.T())
+
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
+	cacheRepo := mock_cache.NewMockRepository(controller)
 
 	bcryptUtil.On("GenerateHashedPassword", t.signupRequest.Password).Return(hashedPassword, nil)
 	userRepo.On("Create", newUser).Return(nil, createUserErr)
 
-	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil, cacheRepo)
 	actual, err := authSvc.Signup(t.ctx, t.signupRequest)
 
 	status, ok := status.FromError(err)
@@ -203,16 +217,19 @@ func (t *AuthServiceTest) TestSignInSuccess() {
 
 	expected := &authProto.SignInResponse{Credential: credential}
 
+	controller := gomock.NewController(t.T())
+
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
+	cacheRepo := mock_cache.NewMockRepository(controller)
 
 	userRepo.On("FindByEmail", t.signInRequest.Email, &model.User{}).Return(existUser, nil)
 	bcryptUtil.On("CompareHashedPassword", existUser.Password, t.signInRequest.Password).Return(nil)
 	tokenService.On("CreateCredential", existUser.ID.String(), existUser.Role).Return(credential, nil)
 	userRepo.On("Update", existUser.ID.String(), updateUser).Return(updateUser, nil)
 
-	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil, cacheRepo)
 	actual, err := authSvc.SignIn(t.ctx, t.signInRequest)
 
 	assert.Nil(t.T(), err)
@@ -225,13 +242,16 @@ func (t *AuthServiceTest) TestSignInUserNotFound() {
 
 	expected := status.Error(codes.PermissionDenied, constant.IncorrectEmailPasswordErrorMessage)
 
+	controller := gomock.NewController(t.T())
+
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
+	cacheRepo := mock_cache.NewMockRepository(controller)
 
 	userRepo.On("FindByEmail", t.signInRequest.Email, &model.User{}).Return(nil, findUserErr)
 
-	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil, cacheRepo)
 	actual, err := authSvc.SignIn(t.ctx, t.signInRequest)
 
 	status, ok := status.FromError(err)
@@ -257,14 +277,17 @@ func (t *AuthServiceTest) TestSignInUnmatchedPassword() {
 
 	expected := status.Error(codes.PermissionDenied, constant.IncorrectEmailPasswordErrorMessage)
 
+	controller := gomock.NewController(t.T())
+
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
+	cacheRepo := mock_cache.NewMockRepository(controller)
 
 	userRepo.On("FindByEmail", t.signInRequest.Email, &model.User{}).Return(existUser, nil)
 	bcryptUtil.On("CompareHashedPassword", existUser.Password, t.signInRequest.Password).Return(comparePwdErr)
 
-	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil, cacheRepo)
 	actual, err := authSvc.SignIn(t.ctx, t.signInRequest)
 
 	status, ok := status.FromError(err)
@@ -290,15 +313,18 @@ func (t *AuthServiceTest) TestSignInCreateCredentialFailed() {
 
 	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
 
+	controller := gomock.NewController(t.T())
+
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
+	cacheRepo := mock_cache.NewMockRepository(controller)
 
 	userRepo.On("FindByEmail", t.signInRequest.Email, &model.User{}).Return(existUser, nil)
 	bcryptUtil.On("CompareHashedPassword", existUser.Password, t.signInRequest.Password).Return(nil)
 	tokenService.On("CreateCredential", existUser.ID.String(), existUser.Role).Return(nil, createCredentialErr)
 
-	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil, cacheRepo)
 	actual, err := authSvc.SignIn(t.ctx, t.signInRequest)
 
 	status, ok := status.FromError(err)
@@ -332,16 +358,19 @@ func (t *AuthServiceTest) TestSignInUpdateTokenFailed() {
 
 	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
 
+	controller := gomock.NewController(t.T())
+
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
+	cacheRepo := mock_cache.NewMockRepository(controller)
 
 	userRepo.On("FindByEmail", t.signInRequest.Email, &model.User{}).Return(existUser, nil)
 	bcryptUtil.On("CompareHashedPassword", existUser.Password, t.signInRequest.Password).Return(nil)
 	tokenService.On("CreateCredential", existUser.ID.String(), existUser.Role).Return(credential, nil)
 	userRepo.On("Update", existUser.ID.String(), updateUser).Return(nil, updateUserErr)
 
-	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil, cacheRepo)
 	actual, err := authSvc.SignIn(t.ctx, t.signInRequest)
 
 	status, ok := status.FromError(err)
