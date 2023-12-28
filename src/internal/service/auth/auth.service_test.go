@@ -23,7 +23,7 @@ import (
 type AuthServiceTest struct {
 	suite.Suite
 	ctx           context.Context
-	signupRequest *authProto.SignupRequest
+	signupRequest *authProto.SignUpRequest
 	signInRequest *authProto.SignInRequest
 }
 
@@ -33,7 +33,7 @@ func TestAuthService(t *testing.T) {
 
 func (t *AuthServiceTest) SetupTest() {
 	ctx := context.Background()
-	signupRequest := &authProto.SignupRequest{
+	signupRequest := &authProto.SignUpRequest{
 		FirstName: faker.FirstName(),
 		LastName:  faker.LastName(),
 		Email:     faker.Email(),
@@ -73,7 +73,7 @@ func (t *AuthServiceTest) TestSignupSuccess() {
 		RefreshToken: newUser.RefreshToken,
 	}
 
-	expected := &authProto.SignupResponse{
+	expected := &authProto.SignUpResponse{
 		Id:        createdUser.ID.String(),
 		FirstName: createdUser.Firstname,
 		LastName:  createdUser.Lastname,

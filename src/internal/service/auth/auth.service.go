@@ -37,7 +37,7 @@ func (s *serviceImpl) RefreshToken(_ context.Context, request *authProto.Refresh
 	return nil, nil
 }
 
-func (s *serviceImpl) Signup(_ context.Context, request *authProto.SignupRequest) (*authProto.SignupResponse, error) {
+func (s *serviceImpl) Signup(_ context.Context, request *authProto.SignUpRequest) (*authProto.SignUpResponse, error) {
 	hashPassword, err := s.bcryptUtil.GenerateHashedPassword(request.Password)
 	if err != nil {
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
@@ -59,7 +59,7 @@ func (s *serviceImpl) Signup(_ context.Context, request *authProto.SignupRequest
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
-	return &authProto.SignupResponse{
+	return &authProto.SignUpResponse{
 		Id:        createUser.ID.String(),
 		FirstName: createUser.Firstname,
 		LastName:  createUser.Lastname,
@@ -91,4 +91,8 @@ func (s *serviceImpl) SignIn(_ context.Context, request *authProto.SignInRequest
 	}
 
 	return &authProto.SignInResponse{Credential: credential}, nil
+}
+
+func (s *serviceImpl) SignOut(_ context.Context, request *authProto.SignOutRequest) (*authProto.SignOutResponse, error) {
+	return nil, nil
 }
