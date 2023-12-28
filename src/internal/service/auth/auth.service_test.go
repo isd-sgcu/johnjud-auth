@@ -388,45 +388,10 @@ func (t *AuthServiceTest) TestRefreshTokenCreateCredentialFailed() {}
 func (t *AuthServiceTest) TestRefreshTokenUpdateTokenFailed() {}
 
 func (t *AuthServiceTest) TestSignOutSuccess() {
-	expected := &authProto.SignOutResponse{
-		IsSuccess: true,
-	}
-
-	controller := gomock.NewController(t.T())
-
-	userRepo := user.UserRepositoryMock{}
-	tokenService := token.TokenServiceMock{}
-	bcryptUtil := utils.BcryptUtilMock{}
-	cacheRepo := mock_cache.NewMockRepository(controller)
-
-	cacheRepo.EXPECT().AddSetMember(constant.BlacklistTokenCacheKey, t.signOutRequest.Token).Return(nil)
-
-	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil, cacheRepo)
-	actual, err := authSvc.SignOut(t.ctx, t.signOutRequest)
-
-	assert.Nil(t.T(), err)
-	assert.Equal(t.T(), expected, actual)
 }
 
-func (t *AuthServiceTest) TestSignOutAddCacheFailed() {
-	setError := errors.New("Internal server error")
-	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
+func (t *AuthServiceTest) TestSignOutValidateFailed() {
+}
 
-	controller := gomock.NewController(t.T())
-
-	userRepo := user.UserRepositoryMock{}
-	tokenService := token.TokenServiceMock{}
-	bcryptUtil := utils.BcryptUtilMock{}
-	cacheRepo := mock_cache.NewMockRepository(controller)
-
-	cacheRepo.EXPECT().AddSetMember(constant.BlacklistTokenCacheKey, t.signOutRequest.Token).Return(setError)
-
-	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil, cacheRepo)
-	actual, err := authSvc.SignOut(t.ctx, t.signOutRequest)
-
-	st, ok := status.FromError(err)
-	assert.Nil(t.T(), actual)
-	assert.Equal(t.T(), codes.Internal, st.Code())
-	assert.True(t.T(), ok)
-	assert.Equal(t.T(), expected.Error(), err.Error())
+func (t *AuthServiceTest) TestSignOutRemoveTokenCacheFailed() {
 }

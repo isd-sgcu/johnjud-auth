@@ -95,11 +95,8 @@ func (s *serviceImpl) SignIn(_ context.Context, request *authProto.SignInRequest
 }
 
 func (s *serviceImpl) SignOut(_ context.Context, request *authProto.SignOutRequest) (*authProto.SignOutResponse, error) {
-	err := s.cacheRepo.AddSetMember(constant.BlacklistTokenCacheKey, request.Token)
-	if err != nil {
-		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
-	}
-
+	// validate
+	// remove cache
 	return &authProto.SignOutResponse{IsSuccess: true}, nil
 }
 
