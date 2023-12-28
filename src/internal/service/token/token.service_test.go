@@ -13,6 +13,7 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/src/mocks/utils"
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	"github.com/pkg/errors"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -46,7 +47,7 @@ func (t *TokenServiceTest) SetupTest() {
 		RefreshTokenTTL: 604800,
 		Issuer:          "testIssuer",
 	}
-	validateToken := "testValidateToken"
+	validateToken := ""
 
 	t.userId = userId
 	t.role = role
@@ -183,7 +184,6 @@ func (t *TokenServiceTest) TestValidateSuccess() {
 		AuthSessionID: t.authSessionId,
 		RefreshToken:  "",
 	}
-
 	payloads := tokenDto.AuthPayload{
 		RegisteredClaims: _jwt.RegisteredClaims{
 			Issuer:    t.jwtConfig.Issuer,
@@ -194,11 +194,11 @@ func (t *TokenServiceTest) TestValidateSuccess() {
 		Role:          t.role,
 		AuthSessionID: t.authSessionId,
 	}
-
 	jwtToken := &_jwt.Token{
 		Method: _jwt.SigningMethodHS256,
 		Claims: payloads,
 	}
+	accessTokenCache := &tokenDto.AccessTokenCache{}
 
 	controller := gomock.NewController(t.T())
 
@@ -209,6 +209,7 @@ func (t *TokenServiceTest) TestValidateSuccess() {
 
 	jwtService.On("VerifyAuth", t.validateToken).Return(jwtToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
+	accessTokenRepo.EXPECT().GetValue(payloads.AuthSessionID, accessTokenCache).Return(nil)
 
 	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(t.validateToken)
@@ -266,7 +267,6 @@ func (t *TokenServiceTest) TestValidateExpireToken() {
 		Role:          t.role,
 		AuthSessionID: t.authSessionId,
 	}
-
 	jwtToken := &_jwt.Token{
 		Method: _jwt.SigningMethodHS256,
 		Claims: payloads,
@@ -303,6 +303,119 @@ func (t *TokenServiceTest) TestValidateVerifyFailed() {
 
 	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(t.validateToken)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected.Error(), err.Error())
+}
+
+func (t *TokenServiceTest) TestValidateGetCacheKeyNotFound() {
+	expected := errors.New("invalid token")
+
+	payloads := tokenDto.AuthPayload{
+		RegisteredClaims: _jwt.RegisteredClaims{
+			Issuer:    t.jwtConfig.Issuer,
+			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * (time.Duration(t.jwtConfig.ExpiresIn)))),
+			IssuedAt:  _jwt.NewNumericDate(time.Now()),
+		},
+		UserID:        t.userId,
+		Role:          t.role,
+		AuthSessionID: t.authSessionId,
+	}
+	jwtToken := &_jwt.Token{
+		Method: _jwt.SigningMethodHS256,
+		Claims: payloads,
+	}
+	accessTokenCache := &tokenDto.AccessTokenCache{}
+
+	controller := gomock.NewController(t.T())
+
+	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	uuidUtil := utils.UuidUtilMock{}
+
+	jwtService.On("VerifyAuth", t.validateToken).Return(jwtToken, nil)
+	jwtService.On("GetConfig").Return(t.jwtConfig)
+	accessTokenRepo.EXPECT().GetValue(payloads.AuthSessionID, accessTokenCache).Return(redis.Nil)
+
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	actual, err := tokenSvc.Validate(t.validateToken)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected.Error(), err.Error())
+}
+
+func (t *TokenServiceTest) TestValidateGetCacheInternalFailed() {
+	expected := errors.New("internal server error")
+
+	payloads := tokenDto.AuthPayload{
+		RegisteredClaims: _jwt.RegisteredClaims{
+			Issuer:    t.jwtConfig.Issuer,
+			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * (time.Duration(t.jwtConfig.ExpiresIn)))),
+			IssuedAt:  _jwt.NewNumericDate(time.Now()),
+		},
+		UserID:        t.userId,
+		Role:          t.role,
+		AuthSessionID: t.authSessionId,
+	}
+	jwtToken := &_jwt.Token{
+		Method: _jwt.SigningMethodHS256,
+		Claims: payloads,
+	}
+	accessTokenCache := &tokenDto.AccessTokenCache{}
+	getCacheErr := errors.New("internal server error")
+
+	controller := gomock.NewController(t.T())
+
+	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	uuidUtil := utils.UuidUtilMock{}
+
+	jwtService.On("VerifyAuth", t.validateToken).Return(jwtToken, nil)
+	jwtService.On("GetConfig").Return(t.jwtConfig)
+	accessTokenRepo.EXPECT().GetValue(payloads.AuthSessionID, accessTokenCache).Return(getCacheErr)
+
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	actual, err := tokenSvc.Validate(t.validateToken)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected.Error(), err.Error())
+}
+
+func (t *TokenServiceTest) TestValidateInvalidToken() {
+	invalidToken := faker.Word()
+	expected := errors.New("invalid token")
+
+	payloads := tokenDto.AuthPayload{
+		RegisteredClaims: _jwt.RegisteredClaims{
+			Issuer:    t.jwtConfig.Issuer,
+			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * (time.Duration(t.jwtConfig.ExpiresIn)))),
+			IssuedAt:  _jwt.NewNumericDate(time.Now()),
+		},
+		UserID:        t.userId,
+		Role:          t.role,
+		AuthSessionID: t.authSessionId,
+	}
+	jwtToken := &_jwt.Token{
+		Method: _jwt.SigningMethodHS256,
+		Claims: payloads,
+	}
+	accessTokenCache := &tokenDto.AccessTokenCache{}
+
+	controller := gomock.NewController(t.T())
+
+	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	uuidUtil := utils.UuidUtilMock{}
+
+	jwtService.On("VerifyAuth", invalidToken).Return(jwtToken, nil)
+	jwtService.On("GetConfig").Return(t.jwtConfig)
+	accessTokenRepo.EXPECT().GetValue(payloads.AuthSessionID, accessTokenCache).Return(nil)
+
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	actual, err := tokenSvc.Validate(invalidToken)
 
 	assert.Nil(t.T(), actual)
 	assert.Equal(t.T(), expected.Error(), err.Error())

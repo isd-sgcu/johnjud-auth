@@ -8,6 +8,7 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/jwt"
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	"github.com/pkg/errors"
+	"github.com/redis/go-redis/v9"
 	"time"
 )
 
@@ -65,7 +66,6 @@ func (s *serviceImpl) CreateCredential(userId string, role constant.Role, authSe
 }
 
 func (s *serviceImpl) Validate(token string) (*tokenDto.UserCredential, error) {
-	// verifyAuth -> jwt.Token
 	jwtToken, err := s.jwtService.VerifyAuth(token)
 	if err != nil {
 		return nil, err
@@ -80,9 +80,24 @@ func (s *serviceImpl) Validate(token string) (*tokenDto.UserCredential, error) {
 		return nil, errors.New("expired token")
 	}
 
+	accessTokenCache := &tokenDto.AccessTokenCache{}
+	err = s.accessTokenCache.GetValue(payloads.AuthSessionID, accessTokenCache)
+	if err != nil {
+		if err != redis.Nil {
+			return nil, errors.New("internal server error")
+		}
+		return nil, errors.New("invalid token")
+	}
+
+	if token != accessTokenCache.Token {
+		return nil, errors.New("invalid token")
+	}
+
 	userCredential := &tokenDto.UserCredential{
-		UserID: payloads.UserID,
-		Role:   payloads.Role,
+		UserID:        payloads.UserID,
+		Role:          payloads.Role,
+		AuthSessionID: payloads.AuthSessionID,
+		RefreshToken:  "",
 	}
 	return userCredential, nil
 }
