@@ -6,6 +6,8 @@ import (
 )
 
 type Repository interface {
+	SetValue(key string, value interface{}, ttl int) error
+	GetValue(key string, value interface{}) error
 	AddSetMember(key string, value interface{}) error
 	IsSetMember(key string, value interface{}) (bool, error)
 }

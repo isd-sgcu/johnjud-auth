@@ -47,6 +47,20 @@ func (mr *MockRepositoryMockRecorder) AddSetMember(key, value interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddSetMember", reflect.TypeOf((*MockRepository)(nil).AddSetMember), key, value)
 }
 
+// GetValue mocks base method.
+func (m *MockRepository) GetValue(key string, value interface{}) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetValue", key, value)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GetValue indicates an expected call of GetValue.
+func (mr *MockRepositoryMockRecorder) GetValue(key, value interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetValue", reflect.TypeOf((*MockRepository)(nil).GetValue), key, value)
+}
+
 // IsSetMember mocks base method.
 func (m *MockRepository) IsSetMember(key string, value interface{}) (bool, error) {
 	m.ctrl.T.Helper()
@@ -60,4 +74,18 @@ func (m *MockRepository) IsSetMember(key string, value interface{}) (bool, error
 func (mr *MockRepositoryMockRecorder) IsSetMember(key, value interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsSetMember", reflect.TypeOf((*MockRepository)(nil).IsSetMember), key, value)
+}
+
+// SetValue mocks base method.
+func (m *MockRepository) SetValue(key string, value interface{}, ttl int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetValue", key, value, ttl)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetValue indicates an expected call of SetValue.
+func (mr *MockRepositoryMockRecorder) SetValue(key, value, ttl interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetValue", reflect.TypeOf((*MockRepository)(nil).SetValue), key, value, ttl)
 }
