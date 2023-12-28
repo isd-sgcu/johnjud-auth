@@ -178,8 +178,10 @@ func (t *TokenServiceTest) TestCreateCredentialSetRefreshTokenFailed() {
 
 func (t *TokenServiceTest) TestValidateSuccess() {
 	expected := &tokenDto.UserCredential{
-		UserID: t.userId,
-		Role:   constant.USER,
+		UserID:        t.userId,
+		Role:          constant.USER,
+		AuthSessionID: t.authSessionId,
+		RefreshToken:  "",
 	}
 
 	payloads := tokenDto.AuthPayload{
@@ -188,8 +190,9 @@ func (t *TokenServiceTest) TestValidateSuccess() {
 			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(t.jwtConfig.ExpiresIn))),
 			IssuedAt:  _jwt.NewNumericDate(time.Now()),
 		},
-		UserID: t.userId,
-		Role:   t.role,
+		UserID:        t.userId,
+		Role:          t.role,
+		AuthSessionID: t.authSessionId,
 	}
 
 	jwtToken := &_jwt.Token{
@@ -223,8 +226,9 @@ func (t *TokenServiceTest) TestValidateInvalidIssuer() {
 			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(t.jwtConfig.ExpiresIn))),
 			IssuedAt:  _jwt.NewNumericDate(time.Now()),
 		},
-		UserID: t.userId,
-		Role:   t.role,
+		UserID:        t.userId,
+		Role:          t.role,
+		AuthSessionID: t.authSessionId,
 	}
 
 	jwtToken := &_jwt.Token{
@@ -258,8 +262,9 @@ func (t *TokenServiceTest) TestValidateExpireToken() {
 			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * (-time.Duration(t.jwtConfig.ExpiresIn)))),
 			IssuedAt:  _jwt.NewNumericDate(time.Now()),
 		},
-		UserID: t.userId,
-		Role:   t.role,
+		UserID:        t.userId,
+		Role:          t.role,
+		AuthSessionID: t.authSessionId,
 	}
 
 	jwtToken := &_jwt.Token{

@@ -6,8 +6,10 @@ import (
 )
 
 type UserCredential struct {
-	UserID string        `json:"user_id"`
-	Role   constant.Role `json:"role"`
+	UserID        string        `json:"user_id"`
+	Role          constant.Role `json:"role"`
+	AuthSessionID string        `json:"auth_session_id"`
+	RefreshToken  string        `json:"refresh_token"`
 }
 
 type AuthPayload struct {
