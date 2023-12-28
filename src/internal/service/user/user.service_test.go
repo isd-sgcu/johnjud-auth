@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bxcodec/faker/v3"
+	"github.com/go-faker/faker/v4"
 	"github.com/google/uuid"
 	"github.com/isd-sgcu/johnjud-auth/src/config"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"

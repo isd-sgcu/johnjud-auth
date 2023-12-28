@@ -20,6 +20,7 @@ import (
 	authSvc "github.com/isd-sgcu/johnjud-auth/src/pkg/service/auth"
 	jwtSvc "github.com/isd-sgcu/johnjud-auth/src/pkg/service/jwt"
 	tokenSvc "github.com/isd-sgcu/johnjud-auth/src/pkg/service/token"
+	userSvc "github.com/isd-sgcu/johnjud-auth/src/pkg/service/user"
 	authPb "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	userPb "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/user/v1"
 	"github.com/rs/zerolog/log"
@@ -126,6 +127,8 @@ func main() {
 
 	authRepo := authRp.NewRepository(db)
 	userRepo := userRp.NewRepository(db)
+
+	userService := userSvc.NewService(userRepo)
 
 	accessTokenCache := cacheRp.NewRepository(cacheDb)
 	refreshTokenCache := cacheRp.NewRepository(cacheDb)
