@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/utils"
@@ -85,7 +86,7 @@ func (s *serviceImpl) SignIn(_ context.Context, request *authProto.SignInRequest
 		return nil, status.Error(codes.PermissionDenied, constant.IncorrectEmailPasswordErrorMessage)
 	}
 
-	credential, err := s.tokenService.CreateCredential(user.ID.String(), user.Role)
+	credential, err := s.createAuthSession(user.ID, user.Role)
 	if err != nil {
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
@@ -95,4 +96,19 @@ func (s *serviceImpl) SignIn(_ context.Context, request *authProto.SignInRequest
 
 func (s *serviceImpl) SignOut(_ context.Context, request *authProto.SignOutRequest) (*authProto.SignOutResponse, error) {
 	return nil, nil
+}
+
+func (s *serviceImpl) createAuthSession(userId uuid.UUID, role constant.Role) (*authProto.Credential, error) {
+	createAuthSession := &model.AuthSession{
+		UserID:    userId,
+		Hostname:  "",
+		UserAgent: "",
+		IPAddress: "",
+	}
+	err := s.authRepo.Create(createAuthSession)
+	if err != nil {
+		return nil, errors.New("Internal server error")
+	}
+
+	return s.tokenService.CreateCredential(userId.String(), role, createAuthSession.ID.String())
 }
