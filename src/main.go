@@ -7,6 +7,7 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/src/database"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/strategy"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/utils"
+	"github.com/isd-sgcu/johnjud-auth/src/pkg/repository/cache"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/auth"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/jwt"
@@ -125,7 +126,8 @@ func main() {
 
 	jwtService := jwt.NewService(conf.Jwt, jwtStrategy, jwtUtil)
 	tokenService := token.NewService(jwtService, uuidUtil)
-	authService := auth.NewService(userRepo, tokenService, bcryptUtil)
+	cacheRepo := cache.NewRepository(cacheDb)
+	authService := auth.NewService(userRepo, tokenService, bcryptUtil, cacheRepo)
 
 	grpc_health_v1.RegisterHealthServer(grpcServer, health.NewServer())
 	authPb.RegisterAuthServiceServer(grpcServer, authService)

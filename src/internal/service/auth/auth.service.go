@@ -5,7 +5,8 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/utils"
-	userRepo "github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
+	"github.com/isd-sgcu/johnjud-auth/src/pkg/repository/cache"
+	"github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
 	"github.com/isd-sgcu/johnjud-auth/src/pkg/service/token"
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	"github.com/pkg/errors"
@@ -16,13 +17,19 @@ import (
 
 type serviceImpl struct {
 	authProto.UnimplementedAuthServiceServer
-	userRepo     userRepo.Repository
+	userRepo     user.Repository
 	tokenService token.Service
 	bcryptUtil   utils.IBcryptUtil
+	cacheRepo    cache.Repository
 }
 
-func NewService(userRepo userRepo.Repository, tokenService token.Service, bcryptUtil utils.IBcryptUtil) *serviceImpl {
-	return &serviceImpl{userRepo: userRepo, tokenService: tokenService, bcryptUtil: bcryptUtil}
+func NewService(userRepo user.Repository, tokenService token.Service, bcryptUtil utils.IBcryptUtil, cacheRepo cache.Repository) *serviceImpl {
+	return &serviceImpl{
+		userRepo:     userRepo,
+		tokenService: tokenService,
+		bcryptUtil:   bcryptUtil,
+		cacheRepo:    cacheRepo,
+	}
 }
 
 func (s *serviceImpl) Validate(_ context.Context, request *authProto.ValidateRequest) (*authProto.ValidateResponse, error) {
