@@ -399,7 +399,7 @@ func (t *AuthServiceTest) TestSignOutSuccess() {
 	bcryptUtil := utils.BcryptUtilMock{}
 	cacheRepo := mock_cache.NewMockRepository(controller)
 
-	cacheRepo.EXPECT().AddSetMember(constant.BlacklistTokenCacheKey, t.signOutRequest.Token).Return(true, nil)
+	cacheRepo.EXPECT().AddSetMember(constant.BlacklistTokenCacheKey, t.signOutRequest.Token).Return(nil)
 
 	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil, cacheRepo)
 	actual, err := authSvc.SignOut(t.ctx, t.signOutRequest)
@@ -419,14 +419,14 @@ func (t *AuthServiceTest) TestSignOutAddCacheFailed() {
 	bcryptUtil := utils.BcryptUtilMock{}
 	cacheRepo := mock_cache.NewMockRepository(controller)
 
-	cacheRepo.EXPECT().AddSetMember(constant.BlacklistTokenCacheKey, t.signOutRequest.Token).Return(false, setError)
+	cacheRepo.EXPECT().AddSetMember(constant.BlacklistTokenCacheKey, t.signOutRequest.Token).Return(setError)
 
 	authSvc := NewService(&userRepo, &tokenService, &bcryptUtil, cacheRepo)
 	actual, err := authSvc.SignOut(t.ctx, t.signOutRequest)
 
 	st, ok := status.FromError(err)
 	assert.Nil(t.T(), actual)
-	assert.Equal(t.T(), codes.Internal, st)
+	assert.Equal(t.T(), codes.Internal, st.Code())
 	assert.True(t.T(), ok)
 	assert.Equal(t.T(), expected.Error(), err.Error())
 }
