@@ -18,8 +18,8 @@ type serviceImpl struct {
 	bcryptUtil utils.IBcryptUtil
 }
 
-func NewService(repo userRepo.Repository) *serviceImpl {
-	return &serviceImpl{repo: repo}
+func NewService(repo userRepo.Repository, bcryptUtil utils.IBcryptUtil) *serviceImpl {
+	return &serviceImpl{repo: repo, bcryptUtil: bcryptUtil}
 }
 
 func (s *serviceImpl) FindOne(_ context.Context, request *proto.FindOneUserRequest) (*proto.FindOneUserResponse, error) {

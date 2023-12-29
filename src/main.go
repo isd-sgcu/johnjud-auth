@@ -128,7 +128,7 @@ func main() {
 	authRepo := authRp.NewRepository(db)
 	userRepo := userRp.NewRepository(db)
 
-	userService := userSvc.NewService(userRepo)
+	userService := userSvc.NewService(userRepo, bcryptUtil)
 
 	accessTokenCache := cacheRp.NewRepository(cacheDb)
 	refreshTokenCache := cacheRp.NewRepository(cacheDb)
