@@ -1,6 +1,7 @@
 package token
 
 import (
+	_jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	tokenDto "github.com/isd-sgcu/johnjud-auth/src/internal/domain/dto/token"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/utils"
@@ -39,6 +40,7 @@ func (s *serviceImpl) CreateCredential(userId string, role constant.Role, authSe
 
 	accessTokenCache := &tokenDto.AccessTokenCache{
 		Token:        accessToken,
+		Role:         role,
 		RefreshToken: refreshToken,
 	}
 	err = s.accessTokenCache.SetValue(authSessionId, accessTokenCache, jwtConf.ExpiresIn)
@@ -71,17 +73,17 @@ func (s *serviceImpl) Validate(token string) (*tokenDto.UserCredential, error) {
 		return nil, err
 	}
 
-	payloads := jwtToken.Claims.(tokenDto.AuthPayload)
-	if payloads.Issuer != s.jwtService.GetConfig().Issuer {
+	payloads := jwtToken.Claims.(_jwt.MapClaims)
+	if payloads["iss"] != s.jwtService.GetConfig().Issuer {
 		return nil, errors.New("invalid token")
 	}
 
-	if time.Unix(payloads.ExpiresAt.Unix(), 0).Before(time.Now()) {
+	if time.Unix(int64(payloads["exp"].(float64)), 0).Before(time.Now()) {
 		return nil, errors.New("expired token")
 	}
 
 	accessTokenCache := &tokenDto.AccessTokenCache{}
-	err = s.accessTokenCache.GetValue(payloads.AuthSessionID, accessTokenCache)
+	err = s.accessTokenCache.GetValue(payloads["auth_session_id"].(string), accessTokenCache)
 	if err != nil {
 		if err != redis.Nil {
 			return nil, err
@@ -94,9 +96,9 @@ func (s *serviceImpl) Validate(token string) (*tokenDto.UserCredential, error) {
 	}
 
 	userCredential := &tokenDto.UserCredential{
-		UserID:        payloads.UserID,
-		Role:          payloads.Role,
-		AuthSessionID: payloads.AuthSessionID,
+		UserID:        payloads["user_id"].(string),
+		Role:          accessTokenCache.Role,
+		AuthSessionID: payloads["auth_session_id"].(string),
 		RefreshToken:  accessTokenCache.RefreshToken,
 	}
 	return userCredential, nil

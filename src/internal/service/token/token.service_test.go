@@ -61,6 +61,7 @@ func (t *TokenServiceTest) SetupTest() {
 func (t *TokenServiceTest) TestCreateCredentialSuccess() {
 	accessTokenCache := &tokenDto.AccessTokenCache{
 		Token:        t.accessToken,
+		Role:         t.role,
 		RefreshToken: t.refreshToken.String(),
 	}
 	refreshTokenCache := &tokenDto.RefreshTokenCache{
@@ -120,6 +121,7 @@ func (t *TokenServiceTest) TestCreateCredentialSignAuthFailed() {
 func (t *TokenServiceTest) TestCreateCredentialSetAccessTokenFailed() {
 	accessTokenCache := &tokenDto.AccessTokenCache{
 		Token:        t.accessToken,
+		Role:         t.role,
 		RefreshToken: t.refreshToken.String(),
 	}
 	setCacheErr := errors.New("Internal server error")
@@ -147,6 +149,7 @@ func (t *TokenServiceTest) TestCreateCredentialSetAccessTokenFailed() {
 func (t *TokenServiceTest) TestCreateCredentialSetRefreshTokenFailed() {
 	accessTokenCache := &tokenDto.AccessTokenCache{
 		Token:        t.accessToken,
+		Role:         t.role,
 		RefreshToken: t.refreshToken.String(),
 	}
 	refreshTokenCache := &tokenDto.RefreshTokenCache{
@@ -180,19 +183,16 @@ func (t *TokenServiceTest) TestCreateCredentialSetRefreshTokenFailed() {
 func (t *TokenServiceTest) TestValidateSuccess() {
 	expected := &tokenDto.UserCredential{
 		UserID:        t.userId,
-		Role:          constant.USER,
+		Role:          "",
 		AuthSessionID: t.authSessionId,
 		RefreshToken:  "",
 	}
-	payloads := tokenDto.AuthPayload{
-		RegisteredClaims: _jwt.RegisteredClaims{
-			Issuer:    t.jwtConfig.Issuer,
-			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(t.jwtConfig.ExpiresIn))),
-			IssuedAt:  _jwt.NewNumericDate(time.Now()),
-		},
-		UserID:        t.userId,
-		Role:          t.role,
-		AuthSessionID: t.authSessionId,
+	payloads := _jwt.MapClaims{
+		"iss":             t.jwtConfig.Issuer,
+		"exp":             float64(_jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(t.jwtConfig.ExpiresIn))).Unix()),
+		"iat":             float64(_jwt.NewNumericDate(time.Now()).Unix()),
+		"user_id":         t.userId,
+		"auth_session_id": t.authSessionId,
 	}
 	jwtToken := &_jwt.Token{
 		Method: _jwt.SigningMethodHS256,
@@ -209,7 +209,7 @@ func (t *TokenServiceTest) TestValidateSuccess() {
 
 	jwtService.On("VerifyAuth", t.validateToken).Return(jwtToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
-	accessTokenRepo.EXPECT().GetValue(payloads.AuthSessionID, accessTokenCache).Return(nil)
+	accessTokenRepo.EXPECT().GetValue(payloads["auth_session_id"].(string), accessTokenCache).Return(nil)
 
 	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(t.validateToken)
@@ -221,15 +221,12 @@ func (t *TokenServiceTest) TestValidateSuccess() {
 func (t *TokenServiceTest) TestValidateInvalidIssuer() {
 	expected := errors.New("invalid token")
 
-	payloads := tokenDto.AuthPayload{
-		RegisteredClaims: _jwt.RegisteredClaims{
-			Issuer:    "InvalidIssuer",
-			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(t.jwtConfig.ExpiresIn))),
-			IssuedAt:  _jwt.NewNumericDate(time.Now()),
-		},
-		UserID:        t.userId,
-		Role:          t.role,
-		AuthSessionID: t.authSessionId,
+	payloads := _jwt.MapClaims{
+		"iss":             "invalid issuer",
+		"exp":             float64(_jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(t.jwtConfig.ExpiresIn))).Unix()),
+		"iat":             float64(_jwt.NewNumericDate(time.Now()).Unix()),
+		"user_id":         t.userId,
+		"auth_session_id": t.authSessionId,
 	}
 
 	jwtToken := &_jwt.Token{
@@ -257,15 +254,12 @@ func (t *TokenServiceTest) TestValidateInvalidIssuer() {
 func (t *TokenServiceTest) TestValidateExpireToken() {
 	expected := errors.New("expired token")
 
-	payloads := tokenDto.AuthPayload{
-		RegisteredClaims: _jwt.RegisteredClaims{
-			Issuer:    t.jwtConfig.Issuer,
-			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * (-time.Duration(t.jwtConfig.ExpiresIn)))),
-			IssuedAt:  _jwt.NewNumericDate(time.Now()),
-		},
-		UserID:        t.userId,
-		Role:          t.role,
-		AuthSessionID: t.authSessionId,
+	payloads := _jwt.MapClaims{
+		"iss":             t.jwtConfig.Issuer,
+		"exp":             float64(_jwt.NewNumericDate(time.Now().Add(time.Second * (-time.Duration(t.jwtConfig.ExpiresIn)))).Unix()),
+		"iat":             float64(_jwt.NewNumericDate(time.Now()).Unix()),
+		"user_id":         t.userId,
+		"auth_session_id": t.authSessionId,
 	}
 	jwtToken := &_jwt.Token{
 		Method: _jwt.SigningMethodHS256,
@@ -311,15 +305,12 @@ func (t *TokenServiceTest) TestValidateVerifyFailed() {
 func (t *TokenServiceTest) TestValidateGetCacheKeyNotFound() {
 	expected := errors.New("invalid token")
 
-	payloads := tokenDto.AuthPayload{
-		RegisteredClaims: _jwt.RegisteredClaims{
-			Issuer:    t.jwtConfig.Issuer,
-			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * (time.Duration(t.jwtConfig.ExpiresIn)))),
-			IssuedAt:  _jwt.NewNumericDate(time.Now()),
-		},
-		UserID:        t.userId,
-		Role:          t.role,
-		AuthSessionID: t.authSessionId,
+	payloads := _jwt.MapClaims{
+		"iss":             t.jwtConfig.Issuer,
+		"exp":             float64(_jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(t.jwtConfig.ExpiresIn))).Unix()),
+		"iat":             float64(_jwt.NewNumericDate(time.Now()).Unix()),
+		"user_id":         t.userId,
+		"auth_session_id": t.authSessionId,
 	}
 	jwtToken := &_jwt.Token{
 		Method: _jwt.SigningMethodHS256,
@@ -336,7 +327,7 @@ func (t *TokenServiceTest) TestValidateGetCacheKeyNotFound() {
 
 	jwtService.On("VerifyAuth", t.validateToken).Return(jwtToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
-	accessTokenRepo.EXPECT().GetValue(payloads.AuthSessionID, accessTokenCache).Return(redis.Nil)
+	accessTokenRepo.EXPECT().GetValue(payloads["auth_session_id"].(string), accessTokenCache).Return(redis.Nil)
 
 	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(t.validateToken)
@@ -346,15 +337,12 @@ func (t *TokenServiceTest) TestValidateGetCacheKeyNotFound() {
 }
 
 func (t *TokenServiceTest) TestValidateGetCacheInternalFailed() {
-	payloads := tokenDto.AuthPayload{
-		RegisteredClaims: _jwt.RegisteredClaims{
-			Issuer:    t.jwtConfig.Issuer,
-			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * (time.Duration(t.jwtConfig.ExpiresIn)))),
-			IssuedAt:  _jwt.NewNumericDate(time.Now()),
-		},
-		UserID:        t.userId,
-		Role:          t.role,
-		AuthSessionID: t.authSessionId,
+	payloads := _jwt.MapClaims{
+		"iss":             t.jwtConfig.Issuer,
+		"exp":             float64(_jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(t.jwtConfig.ExpiresIn))).Unix()),
+		"iat":             float64(_jwt.NewNumericDate(time.Now()).Unix()),
+		"user_id":         t.userId,
+		"auth_session_id": t.authSessionId,
 	}
 	jwtToken := &_jwt.Token{
 		Method: _jwt.SigningMethodHS256,
@@ -374,7 +362,7 @@ func (t *TokenServiceTest) TestValidateGetCacheInternalFailed() {
 
 	jwtService.On("VerifyAuth", t.validateToken).Return(jwtToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
-	accessTokenRepo.EXPECT().GetValue(payloads.AuthSessionID, accessTokenCache).Return(getCacheErr)
+	accessTokenRepo.EXPECT().GetValue(payloads["auth_session_id"].(string), accessTokenCache).Return(getCacheErr)
 
 	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(t.validateToken)
@@ -387,15 +375,12 @@ func (t *TokenServiceTest) TestValidateInvalidToken() {
 	invalidToken := faker.Word()
 	expected := errors.New("invalid token")
 
-	payloads := tokenDto.AuthPayload{
-		RegisteredClaims: _jwt.RegisteredClaims{
-			Issuer:    t.jwtConfig.Issuer,
-			ExpiresAt: _jwt.NewNumericDate(time.Now().Add(time.Second * (time.Duration(t.jwtConfig.ExpiresIn)))),
-			IssuedAt:  _jwt.NewNumericDate(time.Now()),
-		},
-		UserID:        t.userId,
-		Role:          t.role,
-		AuthSessionID: t.authSessionId,
+	payloads := _jwt.MapClaims{
+		"iss":             t.jwtConfig.Issuer,
+		"exp":             float64(_jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(t.jwtConfig.ExpiresIn))).Unix()),
+		"iat":             float64(_jwt.NewNumericDate(time.Now()).Unix()),
+		"user_id":         t.userId,
+		"auth_session_id": t.authSessionId,
 	}
 	jwtToken := &_jwt.Token{
 		Method: _jwt.SigningMethodHS256,
@@ -412,7 +397,7 @@ func (t *TokenServiceTest) TestValidateInvalidToken() {
 
 	jwtService.On("VerifyAuth", invalidToken).Return(jwtToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
-	accessTokenRepo.EXPECT().GetValue(payloads.AuthSessionID, accessTokenCache).Return(nil)
+	accessTokenRepo.EXPECT().GetValue(payloads["auth_session_id"].(string), accessTokenCache).Return(nil)
 
 	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(invalidToken)
