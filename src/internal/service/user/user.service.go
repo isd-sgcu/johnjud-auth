@@ -3,7 +3,9 @@ package user
 import (
 	"context"
 
+	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
+	"github.com/isd-sgcu/johnjud-auth/src/internal/utils"
 	userRepo "github.com/isd-sgcu/johnjud-auth/src/pkg/repository/user"
 	proto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/user/v1"
 	"google.golang.org/grpc/codes"
@@ -12,7 +14,8 @@ import (
 
 type serviceImpl struct {
 	proto.UnimplementedUserServiceServer
-	repo userRepo.Repository
+	repo       userRepo.Repository
+	bcryptUtil utils.IBcryptUtil
 }
 
 func NewService(repo userRepo.Repository) *serviceImpl {
@@ -31,19 +34,24 @@ func (s *serviceImpl) FindOne(_ context.Context, request *proto.FindOneUserReque
 }
 
 func (s *serviceImpl) Update(_ context.Context, request *proto.UpdateUserRequest) (*proto.UpdateUserResponse, error) {
-	raw := &model.User{
+	hashPassword, err := s.bcryptUtil.GenerateHashedPassword(request.Password)
+	if err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	updateUser := &model.User{
 		Email:     request.Email,
-		Password:  request.Password,
+		Password:  hashPassword,
 		Firstname: request.Firstname,
 		Lastname:  request.Lastname,
 	}
 
-	err := s.repo.Update(request.Id, raw)
+	err = s.repo.Update(request.Id, updateUser)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
-	return &proto.UpdateUserResponse{User: RawToDto(raw)}, nil
+	return &proto.UpdateUserResponse{User: RawToDto(updateUser)}, nil
 }
 
 func (s *serviceImpl) Delete(_ context.Context, request *proto.DeleteUserRequest) (*proto.DeleteUserResponse, error) {
@@ -59,7 +67,6 @@ func RawToDto(in *model.User) *proto.User {
 	return &proto.User{
 		Id:        in.ID.String(),
 		Email:     in.Email,
-		Password:  in.Password,
 		Firstname: in.Firstname,
 		Lastname:  in.Lastname,
 		Role:      string(in.Role),
