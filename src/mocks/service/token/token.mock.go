@@ -35,6 +35,6 @@ func (m *TokenServiceMock) CreateRefreshToken() string {
 }
 
 func (m *TokenServiceMock) RemoveTokenCache(refreshToken string) error {
-	args := m.Called()
+	args := m.Called(refreshToken)
 	return args.Error(0)
 }
