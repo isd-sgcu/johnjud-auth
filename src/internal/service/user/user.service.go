@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"errors"
 
 	"github.com/isd-sgcu/johnjud-auth/src/internal/constant"
 	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
@@ -10,6 +11,7 @@ import (
 	proto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/user/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"gorm.io/gorm"
 )
 
 type serviceImpl struct {
@@ -27,7 +29,7 @@ func (s *serviceImpl) FindOne(_ context.Context, request *proto.FindOneUserReque
 
 	err := s.repo.FindById(request.Id, &raw)
 	if err != nil {
-		return nil, status.Error(codes.NotFound, "user not found")
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
 	return &proto.FindOneUserResponse{User: RawToDto(&raw)}, nil
@@ -48,7 +50,10 @@ func (s *serviceImpl) Update(_ context.Context, request *proto.UpdateUserRequest
 
 	err = s.repo.Update(request.Id, updateUser)
 	if err != nil {
-		return nil, status.Error(codes.NotFound, "user not found")
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return nil, status.Error(codes.AlreadyExists, constant.DuplicateEmailErrorMessage)
+		}
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
 	return &proto.UpdateUserResponse{User: RawToDto(updateUser)}, nil
@@ -57,7 +62,7 @@ func (s *serviceImpl) Update(_ context.Context, request *proto.UpdateUserRequest
 func (s *serviceImpl) Delete(_ context.Context, request *proto.DeleteUserRequest) (*proto.DeleteUserResponse, error) {
 	err := s.repo.Delete(request.Id)
 	if err != nil {
-		return nil, status.Error(codes.NotFound, "something wrong when deleting user")
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
 	return &proto.DeleteUserResponse{Success: true}, nil
