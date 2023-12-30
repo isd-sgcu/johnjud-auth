@@ -99,7 +99,7 @@ func (t *UserServiceTest) TestFindOneSuccess() {
 	assert.Equal(t.T(), want, actual)
 }
 
-func (t *UserServiceTest) TestFindOneNotFound() {
+func (t *UserServiceTest) TestFindOneInternalErr() {
 	repo := &mock.UserRepositoryMock{}
 	repo.On("FindById", t.User.ID.String(), &model.User{}).Return(nil, errors.New("Not found user"))
 
@@ -130,7 +130,7 @@ func (t *UserServiceTest) TestUpdateSuccess() {
 	assert.Equal(t.T(), want, actual)
 }
 
-func (t *UserServiceTest) TestUpdateNotFound() {
+func (t *UserServiceTest) TestUpdateInternalErr() {
 	repo := &mock.UserRepositoryMock{}
 	repo.On("Update", t.User.ID.String(), t.UpdateUser).Return(nil, errors.New("Not found user"))
 
@@ -161,7 +161,7 @@ func (t *UserServiceTest) TestDeleteSuccess() {
 	assert.Equal(t.T(), want, actual)
 }
 
-func (t *UserServiceTest) TestDeleteNotFound() {
+func (t *UserServiceTest) TestDeleteInternalErr() {
 	repo := &mock.UserRepositoryMock{}
 	repo.On("Delete", t.User.ID.String()).Return(errors.New("Not found user"))
 
