@@ -154,6 +154,20 @@ func (t *UserRepositoryTest) TestUpdateDuplicateEmail() {
 	assert.Equal(t.T(), gorm.ErrDuplicatedKey, err)
 }
 
+func (t *UserRepositoryTest) TestUpdateNotFound() {
+	updateUser := &model.User{
+		Email:     faker.Email(),
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
+	}
+	notFoundId := faker.UUIDDigit()
+
+	err := t.userRepo.Update(notFoundId, updateUser)
+	assert.Equal(t.T(), gorm.ErrRecordNotFound, err)
+}
+
 func (t *UserRepositoryTest) TestDeleteSuccess() {
 	createUser := &model.User{
 		Email:     faker.Email(),
