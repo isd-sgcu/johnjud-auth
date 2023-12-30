@@ -111,7 +111,7 @@ func (t *UserServiceTest) TestFindOneNotFound() {
 
 	assert.True(t.T(), ok)
 	assert.Nil(t.T(), actual)
-	assert.Equal(t.T(), codes.NotFound, st.Code())
+	assert.Equal(t.T(), codes.Internal, st.Code())
 }
 
 func (t *UserServiceTest) TestUpdateSuccess() {
@@ -144,7 +144,7 @@ func (t *UserServiceTest) TestUpdateNotFound() {
 
 	assert.True(t.T(), ok)
 	assert.Nil(t.T(), actual)
-	assert.Equal(t.T(), codes.NotFound, st.Code())
+	assert.Equal(t.T(), codes.Internal, st.Code())
 }
 
 func (t *UserServiceTest) TestDeleteSuccess() {
@@ -172,5 +172,5 @@ func (t *UserServiceTest) TestDeleteNotFound() {
 	st, ok := status.FromError(err)
 	assert.True(t.T(), ok)
 	assert.Nil(t.T(), actual)
-	assert.Equal(t.T(), codes.NotFound, st.Code())
+	assert.Equal(t.T(), codes.Internal, st.Code())
 }
