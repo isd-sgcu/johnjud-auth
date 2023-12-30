@@ -39,26 +39,9 @@ func (r *repositoryImpl) GetValue(key string, value interface{}) error {
 	return json.Unmarshal([]byte(v), value)
 }
 
-func (r *repositoryImpl) AddSetMember(key string, value interface{}) error {
+func (r *repositoryImpl) DeleteValue(key string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	v, err := json.Marshal(value)
-	if err != nil {
-		return err
-	}
-
-	return r.client.SAdd(ctx, key, v).Err()
-}
-
-func (r *repositoryImpl) IsSetMember(key string, value interface{}) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	v, err := json.Marshal(value)
-	if err != nil {
-		return false, err
-	}
-
-	return r.client.SIsMember(ctx, key, v).Result()
+	return r.client.Del(ctx, key).Err()
 }

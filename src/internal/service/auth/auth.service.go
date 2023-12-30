@@ -95,7 +95,22 @@ func (s *serviceImpl) SignIn(_ context.Context, request *authProto.SignInRequest
 }
 
 func (s *serviceImpl) SignOut(_ context.Context, request *authProto.SignOutRequest) (*authProto.SignOutResponse, error) {
-	return nil, nil
+	userCredential, err := s.tokenService.Validate(request.Token)
+	if err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	err = s.tokenService.RemoveTokenCache(userCredential.RefreshToken)
+	if err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	err = s.authRepo.Delete(userCredential.AuthSessionID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	return &authProto.SignOutResponse{IsSuccess: true}, nil
 }
 
 func (s *serviceImpl) createAuthSession(userId uuid.UUID, role constant.Role) (*authProto.Credential, error) {

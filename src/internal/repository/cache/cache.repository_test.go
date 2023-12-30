@@ -69,3 +69,8 @@ func (t *CacheRepositoryTest) TestGetValueSuccess() {
 	assert.Nil(t.T(), err)
 	assert.Equal(t.T(), t.value, value)
 }
+
+func (t *CacheRepositoryTest) TestDeleteValueSuccess() {
+	err := t.cacheRepo.DeleteValue(t.key)
+	assert.Nil(t.T(), err)
+}

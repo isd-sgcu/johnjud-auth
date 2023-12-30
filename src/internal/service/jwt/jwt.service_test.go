@@ -51,7 +51,6 @@ func (t *JwtServiceTest) SetupTest() {
 			IssuedAt:  numericDate,
 		},
 		UserID:        userId,
-		Role:          role,
 		AuthSessionID: authSessionId,
 	}
 

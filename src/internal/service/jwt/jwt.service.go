@@ -30,7 +30,6 @@ func (s *serviceImpl) SignAuth(userId string, role constant.Role, authSessionId 
 			IssuedAt:  s.jwtUtil.GetNumericDate(time.Now()),
 		},
 		UserID:        userId,
-		Role:          role,
 		AuthSessionID: authSessionId,
 	}
 
