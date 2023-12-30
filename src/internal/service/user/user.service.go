@@ -29,7 +29,7 @@ func (s *serviceImpl) FindOne(_ context.Context, request *proto.FindOneUserReque
 
 	err := s.repo.FindById(request.Id, &raw)
 	if err != nil {
-		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+		return nil, status.Error(codes.Internal, "Find one user failed")
 	}
 
 	return &proto.FindOneUserResponse{User: RawToDto(&raw)}, nil
@@ -53,7 +53,7 @@ func (s *serviceImpl) Update(_ context.Context, request *proto.UpdateUserRequest
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return nil, status.Error(codes.AlreadyExists, constant.DuplicateEmailErrorMessage)
 		}
-		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+		return nil, status.Error(codes.Internal, "Update user failed")
 	}
 
 	return &proto.UpdateUserResponse{User: RawToDto(updateUser)}, nil
@@ -62,7 +62,7 @@ func (s *serviceImpl) Update(_ context.Context, request *proto.UpdateUserRequest
 func (s *serviceImpl) Delete(_ context.Context, request *proto.DeleteUserRequest) (*proto.DeleteUserResponse, error) {
 	err := s.repo.Delete(request.Id)
 	if err != nil {
-		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+		return nil, status.Error(codes.Internal, "Delete user failed")
 	}
 
 	return &proto.DeleteUserResponse{Success: true}, nil
