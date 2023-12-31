@@ -30,7 +30,7 @@ func (r *repositoryImpl) Create(user *model.User) error {
 }
 
 func (r *repositoryImpl) Update(id string, user *model.User) error {
-	return r.Db.Where("id = ?", id).Updates(user).Error
+	return r.Db.Where("id = ?", id).Updates(user).First(user, "id = ?", id).Error
 }
 
 func (r *repositoryImpl) Delete(id string) error {
