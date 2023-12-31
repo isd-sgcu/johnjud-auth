@@ -2,6 +2,9 @@ package auth
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/go-faker/faker/v4"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -19,8 +22,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
-	"testing"
-	"time"
 )
 
 type AuthServiceTest struct {
@@ -97,7 +98,7 @@ func (t *AuthServiceTest) TestSignupSuccess() {
 	userRepo.On("Create", newUser).Return(createdUser, nil)
 
 	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
-	actual, err := authSvc.Signup(t.ctx, t.signupRequest)
+	actual, err := authSvc.SignUp(t.ctx, t.signupRequest)
 
 	assert.Nil(t.T(), err)
 	assert.Equal(t.T(), expected.Id, actual.Id)
@@ -118,7 +119,7 @@ func (t *AuthServiceTest) TestSignupHashPasswordFailed() {
 	bcryptUtil.On("GenerateHashedPassword", t.signupRequest.Password).Return("", hashPasswordErr)
 
 	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
-	actual, err := authSvc.Signup(t.ctx, t.signupRequest)
+	actual, err := authSvc.SignUp(t.ctx, t.signupRequest)
 
 	status, ok := status.FromError(err)
 
@@ -152,7 +153,7 @@ func (t *AuthServiceTest) TestSignupCreateUserDuplicateConstraint() {
 	userRepo.On("Create", newUser).Return(nil, createUserErr)
 
 	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
-	actual, err := authSvc.Signup(t.ctx, t.signupRequest)
+	actual, err := authSvc.SignUp(t.ctx, t.signupRequest)
 
 	status, ok := status.FromError(err)
 
@@ -186,7 +187,7 @@ func (t *AuthServiceTest) TestSignupCreateUserInternalFailed() {
 	userRepo.On("Create", newUser).Return(nil, createUserErr)
 
 	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
-	actual, err := authSvc.Signup(t.ctx, t.signupRequest)
+	actual, err := authSvc.SignUp(t.ctx, t.signupRequest)
 
 	status, ok := status.FromError(err)
 

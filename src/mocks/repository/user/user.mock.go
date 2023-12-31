@@ -61,9 +61,6 @@ func (m *UserRepositoryMock) Update(id string, user *model.User) error {
 
 func (m *UserRepositoryMock) Delete(id string) error {
 	args := m.Called(id)
-	if args.Get(0) != nil {
-		return nil
-	}
 
-	return args.Error(1)
+	return args.Error(0)
 }
