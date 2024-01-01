@@ -3,7 +3,7 @@ package database
 import (
 	"fmt"
 	"github.com/isd-sgcu/johnjud-auth/cfgldr"
-	"github.com/isd-sgcu/johnjud-auth/src/internal/domain/model"
+	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"

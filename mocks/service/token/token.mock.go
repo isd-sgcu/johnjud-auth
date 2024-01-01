@@ -23,7 +23,7 @@ func (m *TokenServiceMock) CreateCredential(userId string, role constant.Role, a
 func (m *TokenServiceMock) Validate(token string) (*tokenDto.UserCredential, error) {
 	args := m.Called(token)
 	if args.Get(0) != nil {
-		return args.Get(0).(*token.UserCredential), nil
+		return args.Get(0).(*tokenDto.UserCredential), nil
 	}
 
 	return nil, args.Error(1)

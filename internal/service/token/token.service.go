@@ -82,7 +82,7 @@ func (s *serviceImpl) Validate(token string) (*tokenDto.UserCredential, error) {
 		return nil, errors.New("expired token")
 	}
 
-	accessTokenCache := &token.AccessTokenCache{}
+	accessTokenCache := &tokenDto.AccessTokenCache{}
 	err = s.accessTokenCache.GetValue(payloads["auth_session_id"].(string), accessTokenCache)
 	if err != nil {
 		if err != redis.Nil {
@@ -95,7 +95,7 @@ func (s *serviceImpl) Validate(token string) (*tokenDto.UserCredential, error) {
 		return nil, errors.New("invalid token")
 	}
 
-	userCredential := &token.UserCredential{
+	userCredential := &tokenDto.UserCredential{
 		UserID:        payloads["user_id"].(string),
 		Role:          accessTokenCache.Role,
 		AuthSessionID: payloads["auth_session_id"].(string),
