@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/go-faker/faker/v4"
 	"github.com/isd-sgcu/johnjud-auth/internal/constant"
-	model2 "github.com/isd-sgcu/johnjud-auth/internal/domain/model"
+	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
 	"github.com/isd-sgcu/johnjud-auth/pkg/repository/user"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -17,7 +17,7 @@ type UserRepositoryTest struct {
 	suite.Suite
 	db          *gorm.DB
 	userRepo    user.Repository
-	initialUser *model2.User
+	initialUser *model.User
 }
 
 func TestUserRepository(t *testing.T) {
@@ -30,15 +30,15 @@ func (t *UserRepositoryTest) SetupTest() {
 
 	assert.NoError(t.T(), err)
 
-	_ = db.Migrator().DropTable(&model2.User{})
-	_ = db.Migrator().DropTable(&model2.AuthSession{})
+	_ = db.Migrator().DropTable(&model.User{})
+	_ = db.Migrator().DropTable(&model.AuthSession{})
 
-	err = db.AutoMigrate(&model2.User{}, &model2.AuthSession{})
+	err = db.AutoMigrate(&model.User{}, &model.AuthSession{})
 	assert.NoError(t.T(), err)
 
 	userRepository := NewRepository(db)
 
-	initialUser := &model2.User{
+	initialUser := &model.User{
 		Email:     faker.Email(),
 		Password:  faker.Password(),
 		Firstname: faker.FirstName(),
@@ -56,14 +56,14 @@ func (t *UserRepositoryTest) SetupTest() {
 }
 
 func (t *UserRepositoryTest) TestFindAllSuccess() {
-	users := &[]*model2.User{}
+	users := &[]*model.User{}
 	err := t.userRepo.FindAll(users)
 	assert.NoError(t.T(), err)
 	assert.NotEmpty(t.T(), *users)
 }
 
 func (t *UserRepositoryTest) TestFindByIdSuccess() {
-	user := &model2.User{}
+	user := &model.User{}
 	err := t.userRepo.FindById(t.initialUser.ID.String(), user)
 	assert.NoError(t.T(), err)
 	assert.Equal(t.T(), t.initialUser.ID, user.ID)
@@ -72,13 +72,13 @@ func (t *UserRepositoryTest) TestFindByIdSuccess() {
 func (t *UserRepositoryTest) TestFindByIdNotFound() {
 	notFoundId := faker.UUIDDigit()
 
-	user := &model2.User{}
+	user := &model.User{}
 	err := t.userRepo.FindById(notFoundId, user)
 	assert.Equal(t.T(), gorm.ErrRecordNotFound, err)
 }
 
 func (t *UserRepositoryTest) TestFindByEmailSuccess() {
-	user := &model2.User{}
+	user := &model.User{}
 	email := t.initialUser.Email
 	err := t.userRepo.FindByEmail(email, user)
 	assert.NoError(t.T(), err)
@@ -86,14 +86,14 @@ func (t *UserRepositoryTest) TestFindByEmailSuccess() {
 }
 
 func (t *UserRepositoryTest) TestFindByEmailNotFound() {
-	user := &model2.User{}
+	user := &model.User{}
 	notFoundEmail := faker.Email()
 	err := t.userRepo.FindByEmail(notFoundEmail, user)
 	assert.Equal(t.T(), gorm.ErrRecordNotFound, err)
 }
 
 func (t *UserRepositoryTest) TestCreateSuccess() {
-	createUser := &model2.User{
+	createUser := &model.User{
 		Email:     faker.Email(),
 		Password:  faker.Password(),
 		Firstname: faker.FirstName(),
@@ -106,7 +106,7 @@ func (t *UserRepositoryTest) TestCreateSuccess() {
 }
 
 func (t *UserRepositoryTest) TestCreateDuplicateEmail() {
-	createUser := &model2.User{
+	createUser := &model.User{
 		Email:     t.initialUser.Email,
 		Password:  faker.Password(),
 		Firstname: faker.FirstName(),
@@ -119,7 +119,7 @@ func (t *UserRepositoryTest) TestCreateDuplicateEmail() {
 }
 
 func (t *UserRepositoryTest) TestUpdateSuccess() {
-	updateUser := &model2.User{
+	updateUser := &model.User{
 		Email:     faker.Email(),
 		Password:  faker.Password(),
 		Firstname: faker.FirstName(),
@@ -132,7 +132,7 @@ func (t *UserRepositoryTest) TestUpdateSuccess() {
 }
 
 func (t *UserRepositoryTest) TestUpdateDuplicateEmail() {
-	createUser := &model2.User{
+	createUser := &model.User{
 		Email:     faker.Email(),
 		Password:  faker.Password(),
 		Firstname: faker.FirstName(),
@@ -143,7 +143,7 @@ func (t *UserRepositoryTest) TestUpdateDuplicateEmail() {
 	err := t.userRepo.Create(createUser)
 	assert.NoError(t.T(), err)
 
-	updateUser := &model2.User{
+	updateUser := &model.User{
 		Email:     createUser.Email,
 		Password:  faker.Password(),
 		Firstname: faker.FirstName(),
@@ -156,7 +156,7 @@ func (t *UserRepositoryTest) TestUpdateDuplicateEmail() {
 }
 
 func (t *UserRepositoryTest) TestUpdateNotFound() {
-	updateUser := &model2.User{
+	updateUser := &model.User{
 		Email:     faker.Email(),
 		Password:  faker.Password(),
 		Firstname: faker.FirstName(),
@@ -170,7 +170,7 @@ func (t *UserRepositoryTest) TestUpdateNotFound() {
 }
 
 func (t *UserRepositoryTest) TestDeleteSuccess() {
-	createUser := &model2.User{
+	createUser := &model.User{
 		Email:     faker.Email(),
 		Password:  faker.Password(),
 		Firstname: faker.FirstName(),

@@ -2,9 +2,9 @@ package auth
 
 import (
 	"context"
-	constant2 "github.com/isd-sgcu/johnjud-auth/internal/constant"
+	"github.com/isd-sgcu/johnjud-auth/internal/constant"
 	tokenDto "github.com/isd-sgcu/johnjud-auth/internal/domain/dto/token"
-	model2 "github.com/isd-sgcu/johnjud-auth/internal/domain/model"
+	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
 	"github.com/isd-sgcu/johnjud-auth/mocks/repository/auth"
 	"github.com/isd-sgcu/johnjud-auth/mocks/repository/user"
 	"github.com/isd-sgcu/johnjud-auth/mocks/service/token"
@@ -60,15 +60,15 @@ func (t *AuthServiceTest) SetupTest() {
 
 func (t *AuthServiceTest) TestSignupSuccess() {
 	hashedPassword := faker.Password()
-	newUser := &model2.User{
+	newUser := &model.User{
 		Email:     t.signupRequest.Email,
 		Password:  hashedPassword,
 		Firstname: t.signupRequest.FirstName,
 		Lastname:  t.signupRequest.LastName,
-		Role:      constant2.USER,
+		Role:      constant.USER,
 	}
-	createdUser := &model2.User{
-		Base: model2.Base{
+	createdUser := &model.User{
+		Base: model.Base{
 			ID:        uuid.New(),
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
@@ -107,7 +107,7 @@ func (t *AuthServiceTest) TestSignupSuccess() {
 func (t *AuthServiceTest) TestSignupHashPasswordFailed() {
 	hashPasswordErr := errors.New("Hash password error")
 
-	expected := status.Error(codes.Internal, constant2.InternalServerErrorMessage)
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
 
 	controller := gomock.NewController(t.T())
 
@@ -131,16 +131,16 @@ func (t *AuthServiceTest) TestSignupHashPasswordFailed() {
 
 func (t *AuthServiceTest) TestSignupCreateUserDuplicateConstraint() {
 	hashedPassword := faker.Password()
-	newUser := &model2.User{
+	newUser := &model.User{
 		Email:     t.signupRequest.Email,
 		Password:  hashedPassword,
 		Firstname: t.signupRequest.FirstName,
 		Lastname:  t.signupRequest.LastName,
-		Role:      constant2.USER,
+		Role:      constant.USER,
 	}
 	createUserErr := gorm.ErrDuplicatedKey
 
-	expected := status.Error(codes.AlreadyExists, constant2.DuplicateEmailErrorMessage)
+	expected := status.Error(codes.AlreadyExists, constant.DuplicateEmailErrorMessage)
 
 	controller := gomock.NewController(t.T())
 
@@ -165,16 +165,16 @@ func (t *AuthServiceTest) TestSignupCreateUserDuplicateConstraint() {
 
 func (t *AuthServiceTest) TestSignupCreateUserInternalFailed() {
 	hashedPassword := faker.Password()
-	newUser := &model2.User{
+	newUser := &model.User{
 		Email:     t.signupRequest.Email,
 		Password:  hashedPassword,
 		Firstname: t.signupRequest.FirstName,
 		Lastname:  t.signupRequest.LastName,
-		Role:      constant2.USER,
+		Role:      constant.USER,
 	}
 	createUserErr := errors.New("Internal server error")
 
-	expected := status.Error(codes.Internal, constant2.InternalServerErrorMessage)
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
 
 	controller := gomock.NewController(t.T())
 
@@ -198,17 +198,17 @@ func (t *AuthServiceTest) TestSignupCreateUserInternalFailed() {
 }
 
 func (t *AuthServiceTest) TestSignInSuccess() {
-	existUser := &model2.User{
-		Base: model2.Base{
+	existUser := &model.User{
+		Base: model.Base{
 			ID: uuid.New(),
 		},
 		Email:     t.signInRequest.Email,
 		Password:  faker.Password(),
 		Firstname: faker.FirstName(),
 		Lastname:  faker.LastName(),
-		Role:      constant2.USER,
+		Role:      constant.USER,
 	}
-	newAuthSession := &model2.AuthSession{
+	newAuthSession := &model.AuthSession{
 		UserID: existUser.ID,
 	}
 	credential := &authProto.Credential{
@@ -226,7 +226,7 @@ func (t *AuthServiceTest) TestSignInSuccess() {
 	tokenService := token.TokenServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
-	userRepo.On("FindByEmail", t.signInRequest.Email, &model2.User{}).Return(existUser, nil)
+	userRepo.On("FindByEmail", t.signInRequest.Email, &model.User{}).Return(existUser, nil)
 	bcryptUtil.On("CompareHashedPassword", existUser.Password, t.signInRequest.Password).Return(nil)
 	authRepo.EXPECT().Create(newAuthSession).Return(nil)
 	tokenService.On("CreateCredential", existUser.ID.String(), existUser.Role, newAuthSession.ID.String()).Return(credential, nil)
@@ -242,7 +242,7 @@ func (t *AuthServiceTest) TestSignInSuccess() {
 func (t *AuthServiceTest) TestSignInUserNotFound() {
 	findUserErr := gorm.ErrRecordNotFound
 
-	expected := status.Error(codes.PermissionDenied, constant2.IncorrectEmailPasswordErrorMessage)
+	expected := status.Error(codes.PermissionDenied, constant.IncorrectEmailPasswordErrorMessage)
 
 	controller := gomock.NewController(t.T())
 
@@ -251,7 +251,7 @@ func (t *AuthServiceTest) TestSignInUserNotFound() {
 	tokenService := token.TokenServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
-	userRepo.On("FindByEmail", t.signInRequest.Email, &model2.User{}).Return(nil, findUserErr)
+	userRepo.On("FindByEmail", t.signInRequest.Email, &model.User{}).Return(nil, findUserErr)
 
 	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
 	actual, err := authSvc.SignIn(t.ctx, t.signInRequest)
@@ -264,19 +264,19 @@ func (t *AuthServiceTest) TestSignInUserNotFound() {
 }
 
 func (t *AuthServiceTest) TestSignInUnmatchedPassword() {
-	existUser := &model2.User{
-		Base: model2.Base{
+	existUser := &model.User{
+		Base: model.Base{
 			ID: uuid.New(),
 		},
 		Email:     t.signInRequest.Email,
 		Password:  faker.Password(),
 		Firstname: faker.FirstName(),
 		Lastname:  faker.LastName(),
-		Role:      constant2.USER,
+		Role:      constant.USER,
 	}
 	comparePwdErr := errors.New("Unmatched password")
 
-	expected := status.Error(codes.PermissionDenied, constant2.IncorrectEmailPasswordErrorMessage)
+	expected := status.Error(codes.PermissionDenied, constant.IncorrectEmailPasswordErrorMessage)
 
 	controller := gomock.NewController(t.T())
 
@@ -285,7 +285,7 @@ func (t *AuthServiceTest) TestSignInUnmatchedPassword() {
 	tokenService := token.TokenServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
-	userRepo.On("FindByEmail", t.signInRequest.Email, &model2.User{}).Return(existUser, nil)
+	userRepo.On("FindByEmail", t.signInRequest.Email, &model.User{}).Return(existUser, nil)
 	bcryptUtil.On("CompareHashedPassword", existUser.Password, t.signInRequest.Password).Return(comparePwdErr)
 
 	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
@@ -299,22 +299,22 @@ func (t *AuthServiceTest) TestSignInUnmatchedPassword() {
 }
 
 func (t *AuthServiceTest) TestSignInCreateAuthSessionFailed() {
-	existUser := &model2.User{
-		Base: model2.Base{
+	existUser := &model.User{
+		Base: model.Base{
 			ID: uuid.New(),
 		},
 		Email:     t.signInRequest.Email,
 		Password:  faker.Password(),
 		Firstname: faker.FirstName(),
 		Lastname:  faker.LastName(),
-		Role:      constant2.USER,
+		Role:      constant.USER,
 	}
-	newAuthSession := &model2.AuthSession{
+	newAuthSession := &model.AuthSession{
 		UserID: existUser.ID,
 	}
 	createAuthSessionErr := errors.New("Internal server error")
 
-	expected := status.Error(codes.Internal, constant2.InternalServerErrorMessage)
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
 
 	controller := gomock.NewController(t.T())
 
@@ -323,7 +323,7 @@ func (t *AuthServiceTest) TestSignInCreateAuthSessionFailed() {
 	tokenService := token.TokenServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
-	userRepo.On("FindByEmail", t.signInRequest.Email, &model2.User{}).Return(existUser, nil)
+	userRepo.On("FindByEmail", t.signInRequest.Email, &model.User{}).Return(existUser, nil)
 	bcryptUtil.On("CompareHashedPassword", existUser.Password, t.signInRequest.Password).Return(nil)
 	authRepo.EXPECT().Create(newAuthSession).Return(createAuthSessionErr)
 
@@ -338,22 +338,22 @@ func (t *AuthServiceTest) TestSignInCreateAuthSessionFailed() {
 }
 
 func (t *AuthServiceTest) TestSignInCreateCredentialFailed() {
-	existUser := &model2.User{
-		Base: model2.Base{
+	existUser := &model.User{
+		Base: model.Base{
 			ID: uuid.New(),
 		},
 		Email:     t.signInRequest.Email,
 		Password:  faker.Password(),
 		Firstname: faker.FirstName(),
 		Lastname:  faker.LastName(),
-		Role:      constant2.USER,
+		Role:      constant.USER,
 	}
-	newAuthSession := &model2.AuthSession{
+	newAuthSession := &model.AuthSession{
 		UserID: existUser.ID,
 	}
 	createCredentialErr := errors.New("Failed to create credential")
 
-	expected := status.Error(codes.Internal, constant2.InternalServerErrorMessage)
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
 
 	controller := gomock.NewController(t.T())
 
@@ -362,7 +362,7 @@ func (t *AuthServiceTest) TestSignInCreateCredentialFailed() {
 	tokenService := token.TokenServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
-	userRepo.On("FindByEmail", t.signInRequest.Email, &model2.User{}).Return(existUser, nil)
+	userRepo.On("FindByEmail", t.signInRequest.Email, &model.User{}).Return(existUser, nil)
 	bcryptUtil.On("CompareHashedPassword", existUser.Password, t.signInRequest.Password).Return(nil)
 	authRepo.EXPECT().Create(newAuthSession).Return(nil)
 	tokenService.On("CreateCredential", existUser.ID.String(), existUser.Role, newAuthSession.ID.String()).Return(nil, createCredentialErr)
@@ -392,7 +392,7 @@ func (t *AuthServiceTest) TestRefreshTokenUpdateTokenFailed() {}
 func (t *AuthServiceTest) TestSignOutSuccess() {
 	userCredential := &tokenDto.UserCredential{
 		UserID:        faker.UUIDDigit(),
-		Role:          constant2.USER,
+		Role:          constant.USER,
 		AuthSessionID: faker.UUIDDigit(),
 		RefreshToken:  faker.UUIDDigit(),
 	}
@@ -421,7 +421,7 @@ func (t *AuthServiceTest) TestSignOutSuccess() {
 
 func (t *AuthServiceTest) TestSignOutValidateFailed() {
 	validateErr := errors.New("internal server error")
-	expected := status.Error(codes.Internal, constant2.InternalServerErrorMessage)
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	controller := gomock.NewController(t.T())
 
 	authRepo := mock_auth.NewMockRepository(controller)
@@ -444,13 +444,13 @@ func (t *AuthServiceTest) TestSignOutValidateFailed() {
 func (t *AuthServiceTest) TestSignOutRemoveTokenCacheFailed() {
 	userCredential := &tokenDto.UserCredential{
 		UserID:        faker.UUIDDigit(),
-		Role:          constant2.USER,
+		Role:          constant.USER,
 		AuthSessionID: faker.UUIDDigit(),
 		RefreshToken:  faker.UUIDDigit(),
 	}
 	removeTokenErr := errors.New("internal server error")
 
-	expected := status.Error(codes.Internal, constant2.InternalServerErrorMessage)
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
 
 	controller := gomock.NewController(t.T())
 
@@ -475,13 +475,13 @@ func (t *AuthServiceTest) TestSignOutRemoveTokenCacheFailed() {
 func (t *AuthServiceTest) TestSignOutDeleteAuthSessionFailed() {
 	userCredential := &tokenDto.UserCredential{
 		UserID:        faker.UUIDDigit(),
-		Role:          constant2.USER,
+		Role:          constant.USER,
 		AuthSessionID: faker.UUIDDigit(),
 		RefreshToken:  faker.UUIDDigit(),
 	}
 	deleteAuthErr := errors.New("internal server error")
 
-	expected := status.Error(codes.Internal, constant2.InternalServerErrorMessage)
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
 
 	controller := gomock.NewController(t.T())
 

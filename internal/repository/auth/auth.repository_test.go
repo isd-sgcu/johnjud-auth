@@ -3,7 +3,7 @@ package auth
 import (
 	"fmt"
 	"github.com/google/uuid"
-	model2 "github.com/isd-sgcu/johnjud-auth/internal/domain/model"
+	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
 	"github.com/isd-sgcu/johnjud-auth/pkg/repository/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -28,10 +28,10 @@ func (t *AuthRepositoryTest) SetupTest() {
 
 	assert.NoError(t.T(), err)
 
-	_ = db.Migrator().DropTable(&model2.User{})
-	_ = db.Migrator().DropTable(&model2.AuthSession{})
+	_ = db.Migrator().DropTable(&model.User{})
+	_ = db.Migrator().DropTable(&model.AuthSession{})
 
-	err = db.AutoMigrate(&model2.User{}, &model2.AuthSession{})
+	err = db.AutoMigrate(&model.User{}, &model.AuthSession{})
 	assert.NoError(t.T(), err)
 
 	authRepo := NewRepository(db)
@@ -41,7 +41,7 @@ func (t *AuthRepositoryTest) SetupTest() {
 }
 
 func (t *AuthRepositoryTest) TestCreateSuccess() {
-	createAuthSession := &model2.AuthSession{
+	createAuthSession := &model.AuthSession{
 		UserID: uuid.New(),
 	}
 
@@ -50,7 +50,7 @@ func (t *AuthRepositoryTest) TestCreateSuccess() {
 }
 
 func (t *AuthRepositoryTest) TestDeleteSuccess() {
-	createAuthSession := &model2.AuthSession{
+	createAuthSession := &model.AuthSession{
 		UserID: uuid.New(),
 	}
 

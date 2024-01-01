@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/isd-sgcu/johnjud-auth/cfgldr"
-	database2 "github.com/isd-sgcu/johnjud-auth/database"
+	"github.com/isd-sgcu/johnjud-auth/database"
 	authRp "github.com/isd-sgcu/johnjud-auth/internal/repository/auth"
 	cacheRp "github.com/isd-sgcu/johnjud-auth/internal/repository/cache"
 	userRp "github.com/isd-sgcu/johnjud-auth/internal/repository/user"
@@ -95,7 +95,7 @@ func main() {
 			Msg("Failed to load config")
 	}
 
-	db, err := database2.InitPostgresDatabase(&conf.Database, conf.App.Debug)
+	db, err := database.InitPostgresDatabase(&conf.Database, conf.App.Debug)
 	if err != nil {
 		log.Fatal().
 			Err(err).
@@ -103,7 +103,7 @@ func main() {
 			Msg("Failed to init postgres connection")
 	}
 
-	cacheDb, err := database2.InitRedisConnection(&conf.Redis)
+	cacheDb, err := database.InitRedisConnection(&conf.Redis)
 	if err != nil {
 		log.Fatal().
 			Err(err).

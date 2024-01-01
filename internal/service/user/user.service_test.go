@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/isd-sgcu/johnjud-auth/cfgldr"
-	model2 "github.com/isd-sgcu/johnjud-auth/internal/domain/model"
+	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
 	mock "github.com/isd-sgcu/johnjud-auth/mocks/repository/user"
 	"github.com/isd-sgcu/johnjud-auth/mocks/utils"
 	"testing"
@@ -23,8 +23,8 @@ import (
 type UserServiceTest struct {
 	suite.Suite
 	config            *cfgldr.App
-	User              *model2.User
-	UpdateUser        *model2.User
+	User              *model.User
+	UpdateUser        *model.User
 	UserDto           *proto.User
 	UserDtoNoPassword *proto.User
 	HashedPassword    string
@@ -36,8 +36,8 @@ func TestUserService(t *testing.T) {
 }
 
 func (t *UserServiceTest) SetupTest() {
-	t.User = &model2.User{
-		Base: model2.Base{
+	t.User = &model.User{
+		Base: model.Base{
 			ID:        uuid.New(),
 			CreatedAt: time.Time{},
 			UpdatedAt: time.Time{},
@@ -77,7 +77,7 @@ func (t *UserServiceTest) SetupTest() {
 
 	t.HashedPassword = faker.Password()
 
-	t.UpdateUser = &model2.User{
+	t.UpdateUser = &model.User{
 		Email:     t.User.Email,
 		Password:  t.HashedPassword,
 		Firstname: t.User.Firstname,
@@ -89,7 +89,7 @@ func (t *UserServiceTest) TestFindOneSuccess() {
 	want := &proto.FindOneUserResponse{User: t.UserDtoNoPassword}
 
 	repo := &mock.UserRepositoryMock{}
-	repo.On("FindById", t.User.ID.String(), &model2.User{}).Return(t.User, nil)
+	repo.On("FindById", t.User.ID.String(), &model.User{}).Return(t.User, nil)
 
 	brcyptUtil := &utils.BcryptUtilMock{}
 	srv := NewService(repo, brcyptUtil)
@@ -101,7 +101,7 @@ func (t *UserServiceTest) TestFindOneSuccess() {
 
 func (t *UserServiceTest) TestFindOneInternalErr() {
 	repo := &mock.UserRepositoryMock{}
-	repo.On("FindById", t.User.ID.String(), &model2.User{}).Return(nil, errors.New("Not found user"))
+	repo.On("FindById", t.User.ID.String(), &model.User{}).Return(nil, errors.New("Not found user"))
 
 	brcyptUtil := &utils.BcryptUtilMock{}
 	srv := NewService(repo, brcyptUtil)

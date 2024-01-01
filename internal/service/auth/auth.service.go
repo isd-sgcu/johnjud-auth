@@ -2,8 +2,8 @@ package auth
 
 import (
 	"context"
-	constant2 "github.com/isd-sgcu/johnjud-auth/internal/constant"
-	model2 "github.com/isd-sgcu/johnjud-auth/internal/domain/model"
+	"github.com/isd-sgcu/johnjud-auth/internal/constant"
+	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
 	"github.com/isd-sgcu/johnjud-auth/internal/utils"
 	"github.com/isd-sgcu/johnjud-auth/pkg/repository/auth"
 	"github.com/isd-sgcu/johnjud-auth/pkg/repository/user"
@@ -49,22 +49,22 @@ func (s *serviceImpl) RefreshToken(_ context.Context, request *authProto.Refresh
 func (s *serviceImpl) SignUp(_ context.Context, request *authProto.SignUpRequest) (*authProto.SignUpResponse, error) {
 	hashPassword, err := s.bcryptUtil.GenerateHashedPassword(request.Password)
 	if err != nil {
-		return nil, status.Error(codes.Internal, constant2.InternalServerErrorMessage)
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
-	createUser := &model2.User{
+	createUser := &model.User{
 		Email:     request.Email,
 		Password:  hashPassword,
 		Firstname: request.FirstName,
 		Lastname:  request.LastName,
-		Role:      constant2.USER,
+		Role:      constant.USER,
 	}
 	err = s.userRepo.Create(createUser)
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return nil, status.Error(codes.AlreadyExists, constant2.DuplicateEmailErrorMessage)
+			return nil, status.Error(codes.AlreadyExists, constant.DuplicateEmailErrorMessage)
 		}
-		return nil, status.Error(codes.Internal, constant2.InternalServerErrorMessage)
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
 	return &authProto.SignUpResponse{
@@ -76,20 +76,20 @@ func (s *serviceImpl) SignUp(_ context.Context, request *authProto.SignUpRequest
 }
 
 func (s *serviceImpl) SignIn(_ context.Context, request *authProto.SignInRequest) (*authProto.SignInResponse, error) {
-	user := &model2.User{}
+	user := &model.User{}
 	err := s.userRepo.FindByEmail(request.Email, user)
 	if err != nil {
-		return nil, status.Error(codes.PermissionDenied, constant2.IncorrectEmailPasswordErrorMessage)
+		return nil, status.Error(codes.PermissionDenied, constant.IncorrectEmailPasswordErrorMessage)
 	}
 
 	err = s.bcryptUtil.CompareHashedPassword(user.Password, request.Password)
 	if err != nil {
-		return nil, status.Error(codes.PermissionDenied, constant2.IncorrectEmailPasswordErrorMessage)
+		return nil, status.Error(codes.PermissionDenied, constant.IncorrectEmailPasswordErrorMessage)
 	}
 
 	credential, err := s.createAuthSession(user.ID, user.Role)
 	if err != nil {
-		return nil, status.Error(codes.Internal, constant2.InternalServerErrorMessage)
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
 	return &authProto.SignInResponse{Credential: credential}, nil
@@ -98,24 +98,24 @@ func (s *serviceImpl) SignIn(_ context.Context, request *authProto.SignInRequest
 func (s *serviceImpl) SignOut(_ context.Context, request *authProto.SignOutRequest) (*authProto.SignOutResponse, error) {
 	userCredential, err := s.tokenService.Validate(request.Token)
 	if err != nil {
-		return nil, status.Error(codes.Internal, constant2.InternalServerErrorMessage)
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
 	err = s.tokenService.RemoveTokenCache(userCredential.RefreshToken)
 	if err != nil {
-		return nil, status.Error(codes.Internal, constant2.InternalServerErrorMessage)
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
 	err = s.authRepo.Delete(userCredential.AuthSessionID)
 	if err != nil {
-		return nil, status.Error(codes.Internal, constant2.InternalServerErrorMessage)
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
 	return &authProto.SignOutResponse{IsSuccess: true}, nil
 }
 
-func (s *serviceImpl) createAuthSession(userId uuid.UUID, role constant2.Role) (*authProto.Credential, error) {
-	createAuthSession := &model2.AuthSession{
+func (s *serviceImpl) createAuthSession(userId uuid.UUID, role constant.Role) (*authProto.Credential, error) {
+	createAuthSession := &model.AuthSession{
 		UserID: userId,
 	}
 	err := s.authRepo.Create(createAuthSession)
