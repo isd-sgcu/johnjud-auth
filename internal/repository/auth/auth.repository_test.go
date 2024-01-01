@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	model2 "github.com/isd-sgcu/johnjud-auth/internal/domain/model"
+	"github.com/isd-sgcu/johnjud-auth/pkg/repository/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/postgres"
@@ -14,7 +15,7 @@ import (
 type AuthRepositoryTest struct {
 	suite.Suite
 	db       *gorm.DB
-	authRepo *repositoryImpl
+	authRepo auth.Repository
 }
 
 func TestAuthRepository(t *testing.T) {

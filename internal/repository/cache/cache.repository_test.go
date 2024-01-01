@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-faker/faker/v4"
 	tokenDto "github.com/isd-sgcu/johnjud-auth/internal/domain/dto/token"
+	"github.com/isd-sgcu/johnjud-auth/pkg/repository/cache"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -15,7 +16,7 @@ import (
 type CacheRepositoryTest struct {
 	suite.Suite
 	cacheDb   *redis.Client
-	cacheRepo *repositoryImpl
+	cacheRepo cache.Repository
 	key       string
 	value     *tokenDto.AccessTokenCache
 }
@@ -41,7 +42,7 @@ func (t *CacheRepositoryTest) SetupTest() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := cacheRepo.client.FlushDB(ctx).Err()
+	err := cacheDb.FlushDB(ctx).Err()
 	assert.Nil(t.T(), err)
 
 	err = cacheRepo.SetValue(key, value, 60)

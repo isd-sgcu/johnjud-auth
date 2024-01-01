@@ -5,6 +5,7 @@ import (
 	"github.com/go-faker/faker/v4"
 	"github.com/isd-sgcu/johnjud-auth/internal/constant"
 	model2 "github.com/isd-sgcu/johnjud-auth/internal/domain/model"
+	"github.com/isd-sgcu/johnjud-auth/pkg/repository/user"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/postgres"
@@ -15,7 +16,7 @@ import (
 type UserRepositoryTest struct {
 	suite.Suite
 	db          *gorm.DB
-	userRepo    *repositoryImpl
+	userRepo    user.Repository
 	initialUser *model2.User
 }
 
