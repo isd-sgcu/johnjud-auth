@@ -8,7 +8,7 @@ type IUuidUtil interface {
 
 type uuidUtil struct{}
 
-func NewUuidUtil() *uuidUtil {
+func NewUuidUtil() IUuidUtil {
 	return &uuidUtil{}
 }
 

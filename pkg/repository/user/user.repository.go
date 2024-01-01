@@ -2,8 +2,6 @@ package user
 
 import (
 	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
-	"github.com/isd-sgcu/johnjud-auth/internal/repository/user"
-	"gorm.io/gorm"
 )
 
 type Repository interface {
@@ -13,8 +11,4 @@ type Repository interface {
 	Create(user *model.User) error
 	Update(id string, user *model.User) error
 	Delete(id string) error
-}
-
-func NewRepository(db *gorm.DB) Repository {
-	return user.NewRepository(db)
 }

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
+	"github.com/isd-sgcu/johnjud-auth/pkg/repository/auth"
 	"gorm.io/gorm"
 )
 
@@ -9,7 +10,7 @@ type repositoryImpl struct {
 	Db *gorm.DB
 }
 
-func NewRepository(db *gorm.DB) *repositoryImpl {
+func NewRepository(db *gorm.DB) auth.Repository {
 	return &repositoryImpl{Db: db}
 }
 

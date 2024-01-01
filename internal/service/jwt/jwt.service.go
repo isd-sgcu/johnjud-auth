@@ -7,6 +7,7 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/internal/constant"
 	tokenDto "github.com/isd-sgcu/johnjud-auth/internal/domain/dto/token"
 	"github.com/isd-sgcu/johnjud-auth/internal/utils"
+	"github.com/isd-sgcu/johnjud-auth/pkg/service/jwt"
 	"github.com/isd-sgcu/johnjud-auth/pkg/strategy"
 	"github.com/pkg/errors"
 	"time"
@@ -18,7 +19,7 @@ type serviceImpl struct {
 	jwtUtil  utils.IJwtUtil
 }
 
-func NewService(config cfgldr.Jwt, strategy strategy.JwtStrategy, jwtUtil utils.IJwtUtil) *serviceImpl {
+func NewService(config cfgldr.Jwt, strategy strategy.JwtStrategy, jwtUtil utils.IJwtUtil) jwt.Service {
 	return &serviceImpl{config: config, strategy: strategy, jwtUtil: jwtUtil}
 }
 

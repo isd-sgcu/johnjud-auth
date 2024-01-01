@@ -14,7 +14,7 @@ type IJwtUtil interface {
 
 type jwtUtilImpl struct{}
 
-func NewJwtUtil() *jwtUtilImpl {
+func NewJwtUtil() IJwtUtil {
 	return &jwtUtilImpl{}
 }
 

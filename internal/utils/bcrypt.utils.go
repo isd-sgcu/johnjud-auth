@@ -9,7 +9,7 @@ type IBcryptUtil interface {
 
 type bcryptUtil struct{}
 
-func NewBcryptUtil() *bcryptUtil {
+func NewBcryptUtil() IBcryptUtil {
 	return &bcryptUtil{}
 }
 

@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"github.com/isd-sgcu/johnjud-auth/pkg/repository/cache"
 	"github.com/redis/go-redis/v9"
 	"time"
 )
@@ -11,7 +12,7 @@ type repositoryImpl struct {
 	client *redis.Client
 }
 
-func NewRepository(client *redis.Client) *repositoryImpl {
+func NewRepository(client *redis.Client) cache.Repository {
 	return &repositoryImpl{client: client}
 }
 

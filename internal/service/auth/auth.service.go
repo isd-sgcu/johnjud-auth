@@ -25,7 +25,7 @@ type serviceImpl struct {
 	bcryptUtil   utils.IBcryptUtil
 }
 
-func NewService(authRepo auth.Repository, userRepo user.Repository, tokenService token.Service, bcryptUtil utils.IBcryptUtil) *serviceImpl {
+func NewService(authRepo auth.Repository, userRepo user.Repository, tokenService token.Service, bcryptUtil utils.IBcryptUtil) authProto.AuthServiceServer {
 	return &serviceImpl{
 		authRepo:     authRepo,
 		userRepo:     userRepo,

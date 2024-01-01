@@ -7,6 +7,7 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/internal/utils"
 	"github.com/isd-sgcu/johnjud-auth/pkg/repository/cache"
 	"github.com/isd-sgcu/johnjud-auth/pkg/service/jwt"
+	"github.com/isd-sgcu/johnjud-auth/pkg/service/token"
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
@@ -20,7 +21,7 @@ type serviceImpl struct {
 	uuidUtil          utils.IUuidUtil
 }
 
-func NewService(jwtService jwt.Service, accessTokenCache cache.Repository, refreshTokenCache cache.Repository, uuidUtil utils.IUuidUtil) *serviceImpl {
+func NewService(jwtService jwt.Service, accessTokenCache cache.Repository, refreshTokenCache cache.Repository, uuidUtil utils.IUuidUtil) token.Service {
 	return &serviceImpl{
 		jwtService:        jwtService,
 		accessTokenCache:  accessTokenCache,
