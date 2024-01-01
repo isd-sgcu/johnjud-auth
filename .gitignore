@@ -32,4 +32,4 @@ coverage.html
 
 .DS_store
 
-src/internal/repository/user/memory:
+internal/repository/user/memory:
