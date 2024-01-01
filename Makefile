@@ -1,13 +1,13 @@
 server:
-	go run ./src/.
+	go run ./cmd/.
 
 mock-gen:
-	mockgen -source ./src/pkg/repository/cache/cache.repository.go -destination ./src/mocks/repository/cache/cache.mock.go
-	mockgen -source ./src/pkg/repository/auth/auth.repository.go -destination ./src/mocks/repository/auth/auth.mock.go
+	mockgen -source ./pkg/repository/cache/cache.repository.go -destination ./mocks/repository/cache/cache.mock.go
+	mockgen -source ./pkg/repository/auth/auth.repository.go -destination ./mocks/repository/auth/auth.mock.go
 
 test:
 	go vet ./...
-	go test  -v -coverpkg ./src/internal/... -coverprofile coverage.out -covermode count ./src/internal/...
+	go test  -v -coverpkg ./internal/... -coverprofile coverage.out -covermode count ./internal/...
 	go tool cover -func=coverage.out
 	go tool cover -html=coverage.out -o coverage.html
 
