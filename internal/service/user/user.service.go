@@ -20,7 +20,7 @@ type serviceImpl struct {
 	bcryptUtil utils.IBcryptUtil
 }
 
-func NewService(repo userRepo.Repository, bcryptUtil utils.IBcryptUtil) *serviceImpl {
+func NewService(repo userRepo.Repository, bcryptUtil utils.IBcryptUtil) proto.UserServiceServer {
 	return &serviceImpl{repo: repo, bcryptUtil: bcryptUtil}
 }
 
