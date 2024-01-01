@@ -11,10 +11,10 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy the source code
-COPY ./src ./src
+COPY . .
 
 # Build the application
-RUN go build -o server ./src/.
+RUN go build -o server ./cmd/main.go
 
 # Copy config files
 COPY ./config ./config
