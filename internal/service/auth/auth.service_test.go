@@ -26,10 +26,11 @@ import (
 
 type AuthServiceTest struct {
 	suite.Suite
-	ctx            context.Context
-	signupRequest  *authProto.SignUpRequest
-	signInRequest  *authProto.SignInRequest
-	signOutRequest *authProto.SignOutRequest
+	ctx             context.Context
+	signupRequest   *authProto.SignUpRequest
+	signInRequest   *authProto.SignInRequest
+	signOutRequest  *authProto.SignOutRequest
+	validateRequest *authProto.ValidateRequest
 }
 
 func TestAuthService(t *testing.T) {
@@ -51,11 +52,15 @@ func (t *AuthServiceTest) SetupTest() {
 	signOutRequest := &authProto.SignOutRequest{
 		Token: faker.Word(),
 	}
+	validateRequest := &authProto.ValidateRequest{
+		Token: faker.Word(),
+	}
 
 	t.ctx = ctx
 	t.signupRequest = signupRequest
 	t.signInRequest = signInRequest
 	t.signOutRequest = signOutRequest
+	t.validateRequest = validateRequest
 }
 
 func (t *AuthServiceTest) TestSignupSuccess() {
@@ -377,9 +382,57 @@ func (t *AuthServiceTest) TestSignInCreateCredentialFailed() {
 	assert.Equal(t.T(), expected.Error(), err.Error())
 }
 
-func (t *AuthServiceTest) TestValidateSuccess() {}
+func (t *AuthServiceTest) TestValidateSuccess() {
+	userCredential := &tokenDto.UserCredential{
+		UserID:        faker.UUIDDigit(),
+		Role:          constant.USER,
+		AuthSessionID: faker.UUIDDigit(),
+		RefreshToken:  faker.UUIDDigit(),
+	}
 
-func (t *AuthServiceTest) TestValidateFailed() {}
+	expected := &authProto.ValidateResponse{
+		UserId: userCredential.UserID,
+		Role:   string(userCredential.Role),
+	}
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("Validate", t.validateRequest.Token).Return(userCredential, nil)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	actual, err := authSvc.Validate(t.ctx, t.validateRequest)
+
+	assert.Nil(t.T(), err)
+	assert.Equal(t.T(), expected, actual)
+}
+
+func (t *AuthServiceTest) TestValidateFailed() {
+	validateErr := errors.New("invalid token")
+	expected := status.Error(codes.Unauthenticated, constant.InvalidTokenErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("Validate", t.validateRequest.Token).Return(nil, validateErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	actual, err := authSvc.Validate(t.ctx, t.validateRequest)
+
+	st, ok := status.FromError(err)
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), codes.Unauthenticated, st.Code())
+	assert.True(t.T(), ok)
+	assert.Equal(t.T(), expected.Error(), err.Error())
+}
 
 func (t *AuthServiceTest) TestRefreshTokenSuccess() {}
 
