@@ -34,6 +34,15 @@ func (m *TokenServiceMock) CreateRefreshToken() string {
 	return args.Get(0).(string)
 }
 
+func (m *TokenServiceMock) FindRefreshTokenCache(refreshToken string) (*tokenDto.RefreshTokenCache, error) {
+	args := m.Called(refreshToken)
+	if args.Get(0) != nil {
+		return args.Get(0).(*tokenDto.RefreshTokenCache), nil
+	}
+
+	return nil, args.Error(1)
+}
+
 func (m *TokenServiceMock) RemoveTokenCache(refreshToken string) error {
 	args := m.Called(refreshToken)
 	return args.Error(0)

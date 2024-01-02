@@ -11,6 +11,8 @@ import (
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"time"
 )
 
@@ -107,6 +109,19 @@ func (s *serviceImpl) Validate(token string) (*tokenDto.UserCredential, error) {
 
 func (s *serviceImpl) CreateRefreshToken() string {
 	return s.uuidUtil.GetNewUUID().String()
+}
+
+func (s *serviceImpl) FindRefreshTokenCache(refreshToken string) (*tokenDto.RefreshTokenCache, error) {
+	refreshTokenCache := &tokenDto.RefreshTokenCache{}
+	err := s.refreshTokenCache.GetValue(refreshToken, refreshTokenCache)
+	if err != nil {
+		if err != redis.Nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	return refreshTokenCache, nil
 }
 
 func (s *serviceImpl) RemoveTokenCache(refreshToken string) error {

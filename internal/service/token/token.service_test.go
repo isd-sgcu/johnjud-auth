@@ -16,6 +16,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"testing"
 	"time"
 )
@@ -422,6 +424,67 @@ func (t *TokenServiceTest) TestCreateRefreshTokenSuccess() {
 	actual := tokenSvc.CreateRefreshToken()
 
 	assert.Equal(t.T(), expected, actual)
+}
+
+func (t *TokenServiceTest) TestFindRefreshTokenCacheSuccess() {
+	expected := &tokenDto.RefreshTokenCache{}
+
+	controller := gomock.NewController(t.T())
+
+	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	uuidUtil := utils.UuidUtilMock{}
+
+	refreshTokenRepo.EXPECT().GetValue(t.refreshToken.String(), &tokenDto.RefreshTokenCache{}).Return(nil)
+
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	actual, err := tokenSvc.FindRefreshTokenCache(t.refreshToken.String())
+
+	assert.Nil(t.T(), err)
+	assert.Equal(t.T(), expected, actual)
+}
+
+func (t *TokenServiceTest) TestFindRefreshTokenCacheInvalid() {
+	getCacheErr := redis.Nil
+
+	expected := status.Error(codes.InvalidArgument, getCacheErr.Error())
+
+	controller := gomock.NewController(t.T())
+
+	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	uuidUtil := utils.UuidUtilMock{}
+
+	refreshTokenRepo.EXPECT().GetValue(t.refreshToken.String(), &tokenDto.RefreshTokenCache{}).Return(getCacheErr)
+
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	actual, err := tokenSvc.FindRefreshTokenCache(t.refreshToken.String())
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *TokenServiceTest) TestFindRefreshTokenCacheInternalError() {
+	getCacheErr := errors.New("internal server error")
+
+	expected := status.Error(codes.Internal, getCacheErr.Error())
+
+	controller := gomock.NewController(t.T())
+
+	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	uuidUtil := utils.UuidUtilMock{}
+
+	refreshTokenRepo.EXPECT().GetValue(t.refreshToken.String(), &tokenDto.RefreshTokenCache{}).Return(getCacheErr)
+
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	actual, err := tokenSvc.FindRefreshTokenCache(t.refreshToken.String())
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
 }
 
 func (t *TokenServiceTest) TestRemoveTokenCacheSuccess() {
