@@ -61,7 +61,7 @@ func (s *serviceImpl) RefreshToken(_ context.Context, request *authProto.Refresh
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
-	err = s.tokenService.RemoveTokenCache(request.RefreshToken)
+	err = s.tokenService.RemoveRefreshTokenCache(request.RefreshToken)
 	if err != nil {
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
@@ -134,7 +134,12 @@ func (s *serviceImpl) SignOut(_ context.Context, request *authProto.SignOutReque
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
-	err = s.tokenService.RemoveTokenCache(userCredential.RefreshToken)
+	err = s.tokenService.RemoveRefreshTokenCache(userCredential.RefreshToken)
+	if err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	err = s.tokenService.RemoveAccessTokenCache(userCredential.AuthSessionID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
