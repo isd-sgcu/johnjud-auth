@@ -35,8 +35,15 @@ func NewService(authRepo auth.Repository, userRepo user.Repository, tokenService
 }
 
 func (s *serviceImpl) Validate(_ context.Context, request *authProto.ValidateRequest) (*authProto.ValidateResponse, error) {
-	// call tokenService.Validate
-	return nil, nil
+	userCredential, err := s.tokenService.Validate(request.Token)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, constant.InvalidTokenErrorMessage)
+	}
+
+	return &authProto.ValidateResponse{
+		UserId: userCredential.UserID,
+		Role:   string(userCredential.Role),
+	}, nil
 }
 
 func (s *serviceImpl) RefreshToken(_ context.Context, request *authProto.RefreshTokenRequest) (*authProto.RefreshTokenResponse, error) {
