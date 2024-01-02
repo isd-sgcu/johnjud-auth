@@ -111,6 +111,17 @@ func (s *serviceImpl) CreateRefreshToken() string {
 	return s.uuidUtil.GetNewUUID().String()
 }
 
+func (s *serviceImpl) RemoveAccessTokenCache(authSessionId string) error {
+	err := s.accessTokenCache.DeleteValue(authSessionId)
+	if err != nil {
+		if err != redis.Nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *serviceImpl) FindRefreshTokenCache(refreshToken string) (*tokenDto.RefreshTokenCache, error) {
 	refreshTokenCache := &tokenDto.RefreshTokenCache{}
 	err := s.refreshTokenCache.GetValue(refreshToken, refreshTokenCache)
@@ -124,24 +135,8 @@ func (s *serviceImpl) FindRefreshTokenCache(refreshToken string) (*tokenDto.Refr
 	return refreshTokenCache, nil
 }
 
-func (s *serviceImpl) RemoveTokenCache(refreshToken string) error {
-	refreshTokenCache := &tokenDto.RefreshTokenCache{}
-	err := s.refreshTokenCache.GetValue(refreshToken, refreshTokenCache)
-	if err != nil {
-		if err != redis.Nil {
-			return err
-		}
-		return nil
-	}
-
-	err = s.refreshTokenCache.DeleteValue(refreshToken)
-	if err != nil {
-		if err != redis.Nil {
-			return err
-		}
-	}
-
-	err = s.accessTokenCache.DeleteValue(refreshTokenCache.AuthSessionID)
+func (s *serviceImpl) RemoveRefreshTokenCache(refreshToken string) error {
+	err := s.refreshTokenCache.DeleteValue(refreshToken)
 	if err != nil {
 		if err != redis.Nil {
 			return err

@@ -426,6 +426,42 @@ func (t *TokenServiceTest) TestCreateRefreshTokenSuccess() {
 	assert.Equal(t.T(), expected, actual)
 }
 
+func (t *TokenServiceTest) TestRemoveAccessTokenCacheSuccess() {
+	controller := gomock.NewController(t.T())
+
+	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	uuidUtil := utils.UuidUtilMock{}
+
+	accessTokenRepo.EXPECT().DeleteValue(t.authSessionId).Return(nil)
+
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	err := tokenSvc.RemoveAccessTokenCache(t.authSessionId)
+
+	assert.Nil(t.T(), err)
+}
+
+func (t *TokenServiceTest) TestRemoveAccessTokenCacheDeleteInternalFailed() {
+	deleteAccessTokenCacheErr := errors.New("internal server error")
+
+	expected := deleteAccessTokenCacheErr
+
+	controller := gomock.NewController(t.T())
+
+	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	uuidUtil := utils.UuidUtilMock{}
+
+	accessTokenRepo.EXPECT().DeleteValue(t.authSessionId).Return(deleteAccessTokenCacheErr)
+
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	err := tokenSvc.RemoveAccessTokenCache(t.authSessionId)
+
+	assert.Equal(t.T(), expected, err)
+}
+
 func (t *TokenServiceTest) TestFindRefreshTokenCacheSuccess() {
 	expected := &tokenDto.RefreshTokenCache{}
 
@@ -487,9 +523,7 @@ func (t *TokenServiceTest) TestFindRefreshTokenCacheInternalError() {
 	assert.Equal(t.T(), expected, err)
 }
 
-func (t *TokenServiceTest) TestRemoveTokenCacheSuccess() {
-	refreshTokenCache := &tokenDto.RefreshTokenCache{}
-
+func (t *TokenServiceTest) TestRemoveRefreshTokenCacheSuccess() {
 	controller := gomock.NewController(t.T())
 
 	jwtService := jwt.JwtServiceMock{}
@@ -497,58 +531,15 @@ func (t *TokenServiceTest) TestRemoveTokenCacheSuccess() {
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
-	refreshTokenRepo.EXPECT().GetValue(t.refreshToken.String(), refreshTokenCache).Return(nil)
 	refreshTokenRepo.EXPECT().DeleteValue(t.refreshToken.String()).Return(nil)
-	accessTokenRepo.EXPECT().DeleteValue(refreshTokenCache.AuthSessionID).Return(nil)
 
 	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
-	err := tokenSvc.RemoveTokenCache(t.refreshToken.String())
+	err := tokenSvc.RemoveRefreshTokenCache(t.refreshToken.String())
 
 	assert.Nil(t.T(), err)
 }
 
-func (t *TokenServiceTest) TestRemoveTokenCacheGetRefreshTokenNotFound() {
-	refreshTokenCache := &tokenDto.RefreshTokenCache{}
-	getRefreshTokenCacheErr := redis.Nil
-
-	controller := gomock.NewController(t.T())
-
-	jwtService := jwt.JwtServiceMock{}
-	accessTokenRepo := mock_cache.NewMockRepository(controller)
-	refreshTokenRepo := mock_cache.NewMockRepository(controller)
-	uuidUtil := utils.UuidUtilMock{}
-
-	refreshTokenRepo.EXPECT().GetValue(t.refreshToken.String(), refreshTokenCache).Return(getRefreshTokenCacheErr)
-
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
-	err := tokenSvc.RemoveTokenCache(t.refreshToken.String())
-
-	assert.Nil(t.T(), err)
-}
-
-func (t *TokenServiceTest) TestRemoveTokenCacheGetRefreshTokenInternalFailed() {
-	refreshTokenCache := &tokenDto.RefreshTokenCache{}
-	getRefreshTokenCacheErr := errors.New("internal server error")
-
-	expected := getRefreshTokenCacheErr
-
-	controller := gomock.NewController(t.T())
-
-	jwtService := jwt.JwtServiceMock{}
-	accessTokenRepo := mock_cache.NewMockRepository(controller)
-	refreshTokenRepo := mock_cache.NewMockRepository(controller)
-	uuidUtil := utils.UuidUtilMock{}
-
-	refreshTokenRepo.EXPECT().GetValue(t.refreshToken.String(), refreshTokenCache).Return(getRefreshTokenCacheErr)
-
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
-	err := tokenSvc.RemoveTokenCache(t.refreshToken.String())
-
-	assert.Equal(t.T(), expected, err)
-}
-
-func (t *TokenServiceTest) TestRemoveTokenCacheDeleteRefreshTokenInternalFailed() {
-	refreshTokenCache := &tokenDto.RefreshTokenCache{}
+func (t *TokenServiceTest) TestRemoveRefreshTokenCacheDeleteInternalFailed() {
 	deleteRefreshTokenCacheErr := errors.New("internal server error")
 
 	expected := deleteRefreshTokenCacheErr
@@ -560,34 +551,10 @@ func (t *TokenServiceTest) TestRemoveTokenCacheDeleteRefreshTokenInternalFailed(
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
-	refreshTokenRepo.EXPECT().GetValue(t.refreshToken.String(), refreshTokenCache).Return(nil)
 	refreshTokenRepo.EXPECT().DeleteValue(t.refreshToken.String()).Return(deleteRefreshTokenCacheErr)
 
 	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
-	err := tokenSvc.RemoveTokenCache(t.refreshToken.String())
-
-	assert.Equal(t.T(), expected, err)
-}
-
-func (t *TokenServiceTest) TestRemoveTokenCacheDeleteAccessTokenInternalFailed() {
-	refreshTokenCache := &tokenDto.RefreshTokenCache{}
-	deleteAccessTokenCacheErr := errors.New("internal server error")
-
-	expected := deleteAccessTokenCacheErr
-
-	controller := gomock.NewController(t.T())
-
-	jwtService := jwt.JwtServiceMock{}
-	accessTokenRepo := mock_cache.NewMockRepository(controller)
-	refreshTokenRepo := mock_cache.NewMockRepository(controller)
-	uuidUtil := utils.UuidUtilMock{}
-
-	refreshTokenRepo.EXPECT().GetValue(t.refreshToken.String(), refreshTokenCache).Return(nil)
-	refreshTokenRepo.EXPECT().DeleteValue(t.refreshToken.String()).Return(nil)
-	accessTokenRepo.EXPECT().DeleteValue(refreshTokenCache.AuthSessionID).Return(deleteAccessTokenCacheErr)
-
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
-	err := tokenSvc.RemoveTokenCache(t.refreshToken.String())
+	err := tokenSvc.RemoveRefreshTokenCache(t.refreshToken.String())
 
 	assert.Equal(t.T(), expected, err)
 }
