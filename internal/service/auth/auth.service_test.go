@@ -26,11 +26,12 @@ import (
 
 type AuthServiceTest struct {
 	suite.Suite
-	ctx             context.Context
-	signupRequest   *authProto.SignUpRequest
-	signInRequest   *authProto.SignInRequest
-	signOutRequest  *authProto.SignOutRequest
-	validateRequest *authProto.ValidateRequest
+	ctx                 context.Context
+	signupRequest       *authProto.SignUpRequest
+	signInRequest       *authProto.SignInRequest
+	signOutRequest      *authProto.SignOutRequest
+	refreshTokenRequest *authProto.RefreshTokenRequest
+	validateRequest     *authProto.ValidateRequest
 }
 
 func TestAuthService(t *testing.T) {
@@ -55,12 +56,16 @@ func (t *AuthServiceTest) SetupTest() {
 	validateRequest := &authProto.ValidateRequest{
 		Token: faker.Word(),
 	}
+	refreshTokenRequest := &authProto.RefreshTokenRequest{
+		RefreshToken: faker.UUIDDigit(),
+	}
 
 	t.ctx = ctx
 	t.signupRequest = signupRequest
 	t.signInRequest = signInRequest
 	t.signOutRequest = signOutRequest
 	t.validateRequest = validateRequest
+	t.refreshTokenRequest = refreshTokenRequest
 }
 
 func (t *AuthServiceTest) TestSignupSuccess() {
@@ -434,13 +439,153 @@ func (t *AuthServiceTest) TestValidateFailed() {
 	assert.Equal(t.T(), expected.Error(), err.Error())
 }
 
-func (t *AuthServiceTest) TestRefreshTokenSuccess() {}
+func (t *AuthServiceTest) TestRefreshTokenSuccess() {
+	refreshTokenCache := &tokenDto.RefreshTokenCache{
+		AuthSessionID: faker.UUIDDigit(),
+		UserID:        faker.UUIDDigit(),
+		Role:          constant.USER,
+	}
+	credential := &authProto.Credential{
+		AccessToken:  faker.Word(),
+		RefreshToken: faker.UUIDDigit(),
+		ExpiresIn:    3600,
+	}
 
-func (t *AuthServiceTest) TestRefreshTokenNotFound() {}
+	expected := &authProto.RefreshTokenResponse{
+		Credential: credential,
+	}
 
-func (t *AuthServiceTest) TestRefreshTokenCreateCredentialFailed() {}
+	controller := gomock.NewController(t.T())
 
-func (t *AuthServiceTest) TestRefreshTokenUpdateTokenFailed() {}
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("FindRefreshTokenCache", t.refreshTokenRequest.RefreshToken).Return(refreshTokenCache, nil)
+	tokenService.On("CreateCredential", refreshTokenCache.UserID, refreshTokenCache.Role, refreshTokenCache.AuthSessionID).Return(credential, nil)
+	tokenService.On("RemoveRefreshTokenCache", t.refreshTokenRequest.RefreshToken).Return(nil)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	actual, err := authSvc.RefreshToken(t.ctx, t.refreshTokenRequest)
+
+	assert.Nil(t.T(), err)
+	assert.Equal(t.T(), expected, actual)
+}
+
+func (t *AuthServiceTest) TestRefreshTokenInvalid() {
+	findTokenErr := status.Error(codes.InvalidArgument, "token not found")
+
+	expected := status.Error(codes.InvalidArgument, constant.InvalidTokenErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("FindRefreshTokenCache", t.refreshTokenRequest.RefreshToken).Return(nil, findTokenErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	actual, err := authSvc.RefreshToken(t.ctx, t.refreshTokenRequest)
+
+	st, ok := status.FromError(err)
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), codes.InvalidArgument, st.Code())
+	assert.True(t.T(), ok)
+	assert.Equal(t.T(), expected.Error(), err.Error())
+}
+
+func (t *AuthServiceTest) TestRefreshTokenFindTokenFailed() {
+	findTokenErr := status.Error(codes.Internal, "internal error")
+
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("FindRefreshTokenCache", t.refreshTokenRequest.RefreshToken).Return(nil, findTokenErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	actual, err := authSvc.RefreshToken(t.ctx, t.refreshTokenRequest)
+
+	st, ok := status.FromError(err)
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), codes.Internal, st.Code())
+	assert.True(t.T(), ok)
+	assert.Equal(t.T(), expected.Error(), err.Error())
+}
+
+func (t *AuthServiceTest) TestRefreshTokenCreateCredentialFailed() {
+	refreshTokenCache := &tokenDto.RefreshTokenCache{
+		AuthSessionID: faker.UUIDDigit(),
+		UserID:        faker.UUIDDigit(),
+		Role:          constant.USER,
+	}
+	createCredentialErr := errors.New("internal error")
+
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("FindRefreshTokenCache", t.refreshTokenRequest.RefreshToken).Return(refreshTokenCache, nil)
+	tokenService.On("CreateCredential", refreshTokenCache.UserID, refreshTokenCache.Role, refreshTokenCache.AuthSessionID).Return(nil, createCredentialErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	actual, err := authSvc.RefreshToken(t.ctx, t.refreshTokenRequest)
+
+	st, ok := status.FromError(err)
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), codes.Internal, st.Code())
+	assert.True(t.T(), ok)
+	assert.Equal(t.T(), expected.Error(), err.Error())
+}
+
+func (t *AuthServiceTest) TestRefreshTokenRemoveTokenFailed() {
+	refreshTokenCache := &tokenDto.RefreshTokenCache{
+		AuthSessionID: faker.UUIDDigit(),
+		UserID:        faker.UUIDDigit(),
+		Role:          constant.USER,
+	}
+	credential := &authProto.Credential{
+		AccessToken:  faker.Word(),
+		RefreshToken: faker.UUIDDigit(),
+		ExpiresIn:    3600,
+	}
+	removeTokenErr := errors.New("internal error")
+
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("FindRefreshTokenCache", t.refreshTokenRequest.RefreshToken).Return(refreshTokenCache, nil)
+	tokenService.On("CreateCredential", refreshTokenCache.UserID, refreshTokenCache.Role, refreshTokenCache.AuthSessionID).Return(credential, nil)
+	tokenService.On("RemoveRefreshTokenCache", t.refreshTokenRequest.RefreshToken).Return(removeTokenErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	actual, err := authSvc.RefreshToken(t.ctx, t.refreshTokenRequest)
+
+	st, ok := status.FromError(err)
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), codes.Internal, st.Code())
+	assert.True(t.T(), ok)
+	assert.Equal(t.T(), expected.Error(), err.Error())
+}
 
 func (t *AuthServiceTest) TestSignOutSuccess() {
 	userCredential := &tokenDto.UserCredential{
@@ -462,7 +607,8 @@ func (t *AuthServiceTest) TestSignOutSuccess() {
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	tokenService.On("Validate", t.signOutRequest.Token).Return(userCredential, nil)
-	tokenService.On("RemoveTokenCache", userCredential.RefreshToken).Return(nil)
+	tokenService.On("RemoveRefreshTokenCache", userCredential.RefreshToken).Return(nil)
+	tokenService.On("RemoveAccessTokenCache", userCredential.AuthSessionID).Return(nil)
 	authRepo.EXPECT().Delete(userCredential.AuthSessionID).Return(nil)
 
 	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
@@ -494,7 +640,7 @@ func (t *AuthServiceTest) TestSignOutValidateFailed() {
 	assert.Equal(t.T(), expected.Error(), err.Error())
 }
 
-func (t *AuthServiceTest) TestSignOutRemoveTokenCacheFailed() {
+func (t *AuthServiceTest) TestSignOutRemoveRefreshTokenCacheFailed() {
 	userCredential := &tokenDto.UserCredential{
 		UserID:        faker.UUIDDigit(),
 		Role:          constant.USER,
@@ -513,7 +659,39 @@ func (t *AuthServiceTest) TestSignOutRemoveTokenCacheFailed() {
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	tokenService.On("Validate", t.signOutRequest.Token).Return(userCredential, nil)
-	tokenService.On("RemoveTokenCache", userCredential.RefreshToken).Return(removeTokenErr)
+	tokenService.On("RemoveRefreshTokenCache", userCredential.RefreshToken).Return(removeTokenErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	actual, err := authSvc.SignOut(t.ctx, t.signOutRequest)
+
+	st, ok := status.FromError(err)
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), codes.Internal, st.Code())
+	assert.True(t.T(), ok)
+	assert.Equal(t.T(), expected.Error(), err.Error())
+}
+
+func (t *AuthServiceTest) TestSignOutRemoveAccessTokenCacheFailed() {
+	userCredential := &tokenDto.UserCredential{
+		UserID:        faker.UUIDDigit(),
+		Role:          constant.USER,
+		AuthSessionID: faker.UUIDDigit(),
+		RefreshToken:  faker.UUIDDigit(),
+	}
+	removeTokenErr := errors.New("internal server error")
+
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("Validate", t.signOutRequest.Token).Return(userCredential, nil)
+	tokenService.On("RemoveRefreshTokenCache", userCredential.RefreshToken).Return(nil)
+	tokenService.On("RemoveAccessTokenCache", userCredential.AuthSessionID).Return(removeTokenErr)
 
 	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
 	actual, err := authSvc.SignOut(t.ctx, t.signOutRequest)
@@ -544,7 +722,8 @@ func (t *AuthServiceTest) TestSignOutDeleteAuthSessionFailed() {
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	tokenService.On("Validate", t.signOutRequest.Token).Return(userCredential, nil)
-	tokenService.On("RemoveTokenCache", userCredential.RefreshToken).Return(nil)
+	tokenService.On("RemoveRefreshTokenCache", userCredential.RefreshToken).Return(nil)
+	tokenService.On("RemoveAccessTokenCache", userCredential.AuthSessionID).Return(nil)
 	authRepo.EXPECT().Delete(userCredential.AuthSessionID).Return(deleteAuthErr)
 
 	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)

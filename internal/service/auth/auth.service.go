@@ -9,7 +9,6 @@ import (
 	"github.com/isd-sgcu/johnjud-auth/pkg/repository/user"
 	"github.com/isd-sgcu/johnjud-auth/pkg/service/token"
 
-	"github.com/google/uuid"
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
@@ -47,10 +46,29 @@ func (s *serviceImpl) Validate(_ context.Context, request *authProto.ValidateReq
 }
 
 func (s *serviceImpl) RefreshToken(_ context.Context, request *authProto.RefreshTokenRequest) (*authProto.RefreshTokenResponse, error) {
-	// find user with refreshToken
-	// create new Credential
-	// update refreshToken in db
-	return nil, nil
+	refreshTokenCache, err := s.tokenService.FindRefreshTokenCache(request.RefreshToken)
+	if err != nil {
+		st, _ := status.FromError(err)
+		switch st.Code() {
+		case codes.InvalidArgument:
+			return nil, status.Error(codes.InvalidArgument, constant.InvalidTokenErrorMessage)
+		default:
+			return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+		}
+	}
+	credential, err := s.tokenService.CreateCredential(refreshTokenCache.UserID, refreshTokenCache.Role, refreshTokenCache.AuthSessionID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	err = s.tokenService.RemoveRefreshTokenCache(request.RefreshToken)
+	if err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	return &authProto.RefreshTokenResponse{
+		Credential: credential,
+	}, nil
 }
 
 func (s *serviceImpl) SignUp(_ context.Context, request *authProto.SignUpRequest) (*authProto.SignUpResponse, error) {
@@ -94,7 +112,15 @@ func (s *serviceImpl) SignIn(_ context.Context, request *authProto.SignInRequest
 		return nil, status.Error(codes.PermissionDenied, constant.IncorrectEmailPasswordErrorMessage)
 	}
 
-	credential, err := s.createAuthSession(user.ID, user.Role)
+	createAuthSession := &model.AuthSession{
+		UserID: user.ID,
+	}
+	err = s.authRepo.Create(createAuthSession)
+	if err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	credential, err := s.tokenService.CreateCredential(user.ID.String(), user.Role, createAuthSession.ID.String())
 	if err != nil {
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
@@ -108,7 +134,12 @@ func (s *serviceImpl) SignOut(_ context.Context, request *authProto.SignOutReque
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
-	err = s.tokenService.RemoveTokenCache(userCredential.RefreshToken)
+	err = s.tokenService.RemoveRefreshTokenCache(userCredential.RefreshToken)
+	if err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	err = s.tokenService.RemoveAccessTokenCache(userCredential.AuthSessionID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
@@ -119,16 +150,4 @@ func (s *serviceImpl) SignOut(_ context.Context, request *authProto.SignOutReque
 	}
 
 	return &authProto.SignOutResponse{IsSuccess: true}, nil
-}
-
-func (s *serviceImpl) createAuthSession(userId uuid.UUID, role constant.Role) (*authProto.Credential, error) {
-	createAuthSession := &model.AuthSession{
-		UserID: userId,
-	}
-	err := s.authRepo.Create(createAuthSession)
-	if err != nil {
-		return nil, errors.New("Internal server error")
-	}
-
-	return s.tokenService.CreateCredential(userId.String(), role, createAuthSession.ID.String())
 }

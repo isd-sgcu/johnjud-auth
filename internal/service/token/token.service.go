@@ -11,6 +11,8 @@ import (
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"time"
 )
 
@@ -109,24 +111,32 @@ func (s *serviceImpl) CreateRefreshToken() string {
 	return s.uuidUtil.GetNewUUID().String()
 }
 
-func (s *serviceImpl) RemoveTokenCache(refreshToken string) error {
+func (s *serviceImpl) RemoveAccessTokenCache(authSessionId string) error {
+	err := s.accessTokenCache.DeleteValue(authSessionId)
+	if err != nil {
+		if err != redis.Nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *serviceImpl) FindRefreshTokenCache(refreshToken string) (*tokenDto.RefreshTokenCache, error) {
 	refreshTokenCache := &tokenDto.RefreshTokenCache{}
 	err := s.refreshTokenCache.GetValue(refreshToken, refreshTokenCache)
 	if err != nil {
 		if err != redis.Nil {
-			return err
+			return nil, status.Error(codes.Internal, err.Error())
 		}
-		return nil
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	err = s.refreshTokenCache.DeleteValue(refreshToken)
-	if err != nil {
-		if err != redis.Nil {
-			return err
-		}
-	}
+	return refreshTokenCache, nil
+}
 
-	err = s.accessTokenCache.DeleteValue(refreshTokenCache.AuthSessionID)
+func (s *serviceImpl) RemoveRefreshTokenCache(refreshToken string) error {
+	err := s.refreshTokenCache.DeleteValue(refreshToken)
 	if err != nil {
 		if err != redis.Nil {
 			return err
