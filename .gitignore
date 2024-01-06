@@ -31,3 +31,5 @@ coverage.out
 coverage.html
 
 .DS_store
+
+internal/repository/user/memory:

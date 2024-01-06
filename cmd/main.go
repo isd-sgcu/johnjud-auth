@@ -3,17 +3,31 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/isd-sgcu/johnjud-auth/src/config"
-	"github.com/isd-sgcu/johnjud-auth/src/database"
-	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
+	"github.com/isd-sgcu/johnjud-auth/cfgldr"
+	"github.com/isd-sgcu/johnjud-auth/database"
+	authRp "github.com/isd-sgcu/johnjud-auth/internal/repository/auth"
+	cacheRp "github.com/isd-sgcu/johnjud-auth/internal/repository/cache"
+	userRp "github.com/isd-sgcu/johnjud-auth/internal/repository/user"
+	authSvc "github.com/isd-sgcu/johnjud-auth/internal/service/auth"
+	jwtSvc "github.com/isd-sgcu/johnjud-auth/internal/service/jwt"
+	tokenSvc "github.com/isd-sgcu/johnjud-auth/internal/service/token"
+	userSvc "github.com/isd-sgcu/johnjud-auth/internal/service/user"
 	"net"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/isd-sgcu/johnjud-auth/internal/strategy"
+	"github.com/isd-sgcu/johnjud-auth/internal/utils"
+	authPb "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
+	userPb "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/user/v1"
+	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/reflection"
 )
 
 type operation func(ctx context.Context) error
@@ -73,7 +87,7 @@ func gracefulShutdown(ctx context.Context, timeout time.Duration, ops map[string
 }
 
 func main() {
-	conf, err := config.LoadConfig()
+	conf, err := cfgldr.LoadConfig()
 	if err != nil {
 		log.Fatal().
 			Err(err).
@@ -81,12 +95,20 @@ func main() {
 			Msg("Failed to load config")
 	}
 
-	_, err = database.InitPostgresDatabase(&conf.Database, conf.App.Debug)
+	db, err := database.InitPostgresDatabase(&conf.Database, conf.App.Debug)
 	if err != nil {
 		log.Fatal().
 			Err(err).
 			Str("service", "auth").
 			Msg("Failed to init postgres connection")
+	}
+
+	cacheDb, err := database.InitRedisConnection(&conf.Redis)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Str("service", "auth").
+			Msg("Failed to init redis connection")
 	}
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%v", conf.App.Port))
@@ -98,6 +120,29 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
+
+	jwtUtil := utils.NewJwtUtil()
+	uuidUtil := utils.NewUuidUtil()
+	bcryptUtil := utils.NewBcryptUtil()
+
+	authRepo := authRp.NewRepository(db)
+	userRepo := userRp.NewRepository(db)
+
+	userService := userSvc.NewService(userRepo, bcryptUtil)
+
+	accessTokenCache := cacheRp.NewRepository(cacheDb)
+	refreshTokenCache := cacheRp.NewRepository(cacheDb)
+
+	jwtStrategy := strategy.NewJwtStrategy(conf.Jwt.Secret)
+	jwtService := jwtSvc.NewService(conf.Jwt, jwtStrategy, jwtUtil)
+	tokenService := tokenSvc.NewService(jwtService, accessTokenCache, refreshTokenCache, uuidUtil)
+
+	authService := authSvc.NewService(authRepo, userRepo, tokenService, bcryptUtil)
+
+	grpc_health_v1.RegisterHealthServer(grpcServer, health.NewServer())
+	authPb.RegisterAuthServiceServer(grpcServer, authService)
+	userPb.RegisterUserServiceServer(grpcServer, userService)
+
 	reflection.Register(grpcServer)
 	go func() {
 		log.Info().
@@ -116,6 +161,16 @@ func main() {
 		"server": func(ctx context.Context) error {
 			grpcServer.GracefulStop()
 			return nil
+		},
+		"database": func(ctx context.Context) error {
+			sqlDB, err := db.DB()
+			if err != nil {
+				return nil
+			}
+			return sqlDB.Close()
+		},
+		"cache": func(ctx context.Context) error {
+			return cacheDb.Close()
 		},
 	})
 
