@@ -20,7 +20,7 @@ These instructions will get you a copy of the project up and running on your loc
 - makefile
 
 ### Installing
-1. Clone the project from [Goland Backend](https://github.com/isd-sgcu/johnjud-auth)
+1. Clone this [repo](https://github.com/isd-sgcu/johnjud-auth)
 2. Import project
 3. Copy `config.example.yaml` in `config` and paste it in the same location then remove `.example` from its name.
 4. Download dependencies by `go mod download`
