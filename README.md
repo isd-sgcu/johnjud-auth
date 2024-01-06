@@ -27,10 +27,10 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Running
 1. Run `docker-compose up -d`
-2. Run `go run ./src/.` or `make server`
+2. Run `go run ./cmd/.` or `make server`
 
 ### Testing
-1. Run `go test  -v -coverpkg ./src/internal/... -coverprofile coverage.out -covermode count ./src/internal/...` or `make test`
+1. Run `go test  -v -coverpkg ./internal/... -coverprofile coverage.out -covermode count ./internal/...` or `make test`
 
 ## Other microservices/repositories of Johnjud
 - [Johnjud-gateway](https://github.com/isd-sgcu/johnjud-gateway): Routing and request handling
