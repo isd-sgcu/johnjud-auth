@@ -3,12 +3,13 @@ package user
 import (
 	"context"
 	"errors"
+	"testing"
+	"time"
+
 	"github.com/isd-sgcu/johnjud-auth/cfgldr"
 	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
 	mock "github.com/isd-sgcu/johnjud-auth/mocks/repository/user"
 	"github.com/isd-sgcu/johnjud-auth/mocks/utils"
-	"testing"
-	"time"
 
 	"github.com/go-faker/faker/v4"
 	"github.com/google/uuid"
@@ -97,6 +98,21 @@ func (t *UserServiceTest) TestFindOneSuccess() {
 
 	assert.Nil(t.T(), err)
 	assert.Equal(t.T(), want, actual)
+}
+
+func (t *UserServiceTest) TestFindOneNotFoundErr() {
+	repo := &mock.UserRepositoryMock{}
+	repo.On("FindById", t.User.ID.String(), &model.User{}).Return(nil, gorm.ErrRecordNotFound)
+
+	brcyptUtil := &utils.BcryptUtilMock{}
+	srv := NewService(repo, brcyptUtil)
+	actual, err := srv.FindOne(context.Background(), &proto.FindOneUserRequest{Id: t.User.ID.String()})
+
+	st, ok := status.FromError(err)
+
+	assert.True(t.T(), ok)
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), codes.NotFound, st.Code())
 }
 
 func (t *UserServiceTest) TestFindOneInternalErr() {
