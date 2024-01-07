@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+
 	"github.com/isd-sgcu/johnjud-auth/internal/constant"
 	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
 	"github.com/isd-sgcu/johnjud-auth/internal/utils"
@@ -29,6 +30,9 @@ func (s *serviceImpl) FindOne(_ context.Context, request *proto.FindOneUserReque
 
 	err := s.repo.FindById(request.Id, &raw)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, constant.UserNotFoundErrorMessage)
+		}
 		return nil, status.Error(codes.Internal, "Find one user failed")
 	}
 
