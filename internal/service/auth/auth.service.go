@@ -151,3 +151,11 @@ func (s *serviceImpl) SignOut(_ context.Context, request *authProto.SignOutReque
 
 	return &authProto.SignOutResponse{IsSuccess: true}, nil
 }
+
+func (s *serviceImpl) ForgotPassword(_ context.Context, request *authProto.ForgotPasswordRequest) (*authProto.ForgotPasswordResponse, error) {
+	return nil, nil
+}
+
+func (s *serviceImpl) ResetPassword(_ context.Context, request *authProto.ResetPasswordRequest) (*authProto.ResetPasswordResponse, error) {
+	return nil, nil
+}
