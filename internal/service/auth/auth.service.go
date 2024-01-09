@@ -2,12 +2,14 @@ package auth
 
 import (
 	"context"
+
 	"github.com/isd-sgcu/johnjud-auth/internal/constant"
 	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
 	"github.com/isd-sgcu/johnjud-auth/internal/utils"
 	"github.com/isd-sgcu/johnjud-auth/pkg/repository/auth"
 	"github.com/isd-sgcu/johnjud-auth/pkg/repository/user"
 	"github.com/isd-sgcu/johnjud-auth/pkg/service/token"
+	"github.com/rs/zerolog/log"
 
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	"github.com/pkg/errors"
@@ -117,11 +119,21 @@ func (s *serviceImpl) SignIn(_ context.Context, request *authProto.SignInRequest
 	}
 	err = s.authRepo.Create(createAuthSession)
 	if err != nil {
+		log.Error().
+			Err(err).
+			Str("service", "auth").
+			Str("module", "signin").
+			Msg("Error creating auth session")
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
 	credential, err := s.tokenService.CreateCredential(user.ID.String(), user.Role, createAuthSession.ID.String())
 	if err != nil {
+		log.Error().
+			Err(err).
+			Str("service", "auth").
+			Str("module", "signin").
+			Msg("Error creating credential")
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
