@@ -2,11 +2,13 @@ package auth
 
 import (
 	"context"
+	"github.com/isd-sgcu/johnjud-auth/cfgldr"
 	"github.com/isd-sgcu/johnjud-auth/internal/constant"
 	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
 	"github.com/isd-sgcu/johnjud-auth/internal/utils"
 	"github.com/isd-sgcu/johnjud-auth/pkg/repository/auth"
 	"github.com/isd-sgcu/johnjud-auth/pkg/repository/user"
+	"github.com/isd-sgcu/johnjud-auth/pkg/service/email"
 	"github.com/isd-sgcu/johnjud-auth/pkg/service/token"
 
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
@@ -21,15 +23,19 @@ type serviceImpl struct {
 	authRepo     auth.Repository
 	userRepo     user.Repository
 	tokenService token.Service
+	emailService email.Service
 	bcryptUtil   utils.IBcryptUtil
+	config       cfgldr.Auth
 }
 
-func NewService(authRepo auth.Repository, userRepo user.Repository, tokenService token.Service, bcryptUtil utils.IBcryptUtil) authProto.AuthServiceServer {
+func NewService(authRepo auth.Repository, userRepo user.Repository, tokenService token.Service, emailService email.Service, bcryptUtil utils.IBcryptUtil, config cfgldr.Auth) authProto.AuthServiceServer {
 	return &serviceImpl{
 		authRepo:     authRepo,
 		userRepo:     userRepo,
 		tokenService: tokenService,
+		emailService: emailService,
 		bcryptUtil:   bcryptUtil,
+		config:       config,
 	}
 }
 

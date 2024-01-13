@@ -34,6 +34,10 @@ type Redis struct {
 	Dbnum    int    `mapstructure:"dbnum"`
 }
 
+type Auth struct {
+	ClientURL string `mapstructure:"client_url"`
+}
+
 type Sendgrid struct {
 	ApiKey  string `mapstructure:"api_key"`
 	Name    string `mapstructure:"name"`
@@ -45,6 +49,7 @@ type Config struct {
 	Database Database `mapstructure:"database"`
 	Jwt      Jwt      `mapstructure:"jwt"`
 	Redis    Redis    `mapstructure:"redis"`
+	Auth     Auth     `mapstructure:"auth"`
 	Sendgrid Sendgrid `mapstructure:"sendgrid"`
 }
 
