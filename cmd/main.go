@@ -133,10 +133,11 @@ func main() {
 
 	accessTokenCache := cacheRp.NewRepository(cacheDb)
 	refreshTokenCache := cacheRp.NewRepository(cacheDb)
+	resetPasswordCache := cacheRp.NewRepository(cacheDb)
 
 	jwtStrategy := strategy.NewJwtStrategy(conf.Jwt.Secret)
 	jwtService := jwtSvc.NewService(conf.Jwt, jwtStrategy, jwtUtil)
-	tokenService := tokenSvc.NewService(jwtService, accessTokenCache, refreshTokenCache, uuidUtil)
+	tokenService := tokenSvc.NewService(jwtService, accessTokenCache, refreshTokenCache, resetPasswordCache, uuidUtil)
 
 	emailService := emailSvc.NewService(conf.Sendgrid)
 	authService := authSvc.NewService(authRepo, userRepo, tokenService, emailService, bcryptUtil, conf.Auth)
