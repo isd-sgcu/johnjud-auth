@@ -34,11 +34,18 @@ type Redis struct {
 	Dbnum    int    `mapstructure:"dbnum"`
 }
 
+type Sendgrid struct {
+	ApiKey  string `mapstructure:"api_key"`
+	Name    string `mapstructure:"name"`
+	Address string `mapstructure:"address"`
+}
+
 type Config struct {
 	App      App      `mapstructure:"app"`
 	Database Database `mapstructure:"database"`
 	Jwt      Jwt      `mapstructure:"jwt"`
 	Redis    Redis    `mapstructure:"redis"`
+	Sendgrid Sendgrid `mapstructure:"sendgrid"`
 }
 
 func LoadConfig() (config *Config, err error) {
