@@ -1,6 +1,8 @@
 package token
 
 import (
+	"time"
+
 	_jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/isd-sgcu/johnjud-auth/internal/constant"
 	tokenDto "github.com/isd-sgcu/johnjud-auth/internal/domain/dto/token"
@@ -11,9 +13,9 @@ import (
 	authProto "github.com/isd-sgcu/johnjud-go-proto/johnjud/auth/auth/v1"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"time"
 )
 
 type serviceImpl struct {
@@ -37,6 +39,11 @@ func NewService(jwtService jwt.Service, accessTokenCache cache.Repository, refre
 func (s *serviceImpl) CreateCredential(userId string, role constant.Role, authSessionId string) (*authProto.Credential, error) {
 	accessToken, err := s.jwtService.SignAuth(userId, role, authSessionId)
 	if err != nil {
+		log.Error().
+			Err(err).
+			Str("service", "token").
+			Str("module", "CreateCredential").
+			Msg("Error signing jwt access token")
 		return nil, err
 	}
 
@@ -50,6 +57,11 @@ func (s *serviceImpl) CreateCredential(userId string, role constant.Role, authSe
 	}
 	err = s.accessTokenCache.SetValue(authSessionId, accessTokenCache, jwtConf.ExpiresIn)
 	if err != nil {
+		log.Error().
+			Err(err).
+			Str("service", "token").
+			Str("module", "CreateCredential").
+			Msg("Error setting value to access token cache")
 		return nil, err
 	}
 
@@ -60,6 +72,11 @@ func (s *serviceImpl) CreateCredential(userId string, role constant.Role, authSe
 	}
 	err = s.refreshTokenCache.SetValue(refreshToken, refreshTokenCache, jwtConf.RefreshTokenTTL)
 	if err != nil {
+		log.Error().
+			Err(err).
+			Str("service", "token").
+			Str("module", "CreateCredential").
+			Msg("Error setting value to refresh token cache")
 		return nil, err
 	}
 
@@ -128,6 +145,11 @@ func (s *serviceImpl) FindRefreshTokenCache(refreshToken string) (*tokenDto.Refr
 	refreshTokenCache := &tokenDto.RefreshTokenCache{}
 	err := s.refreshTokenCache.GetValue(refreshToken, refreshTokenCache)
 	if err != nil {
+		log.Error().
+			Err(err).
+			Str("service", "token").
+			Str("module", "FindRefreshTokenCache").
+			Msg("Error getting value from redis")
 		if err != redis.Nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}

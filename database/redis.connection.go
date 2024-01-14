@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+
 	"github.com/isd-sgcu/johnjud-auth/cfgldr"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
@@ -13,7 +14,6 @@ func InitRedisConnection(conf *cfgldr.Redis) (*redis.Client, error) {
 	cache := redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: conf.Password,
-		DB:       conf.Dbnum,
 	})
 
 	if cache == nil {
