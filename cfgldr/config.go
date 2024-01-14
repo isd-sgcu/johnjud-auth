@@ -25,6 +25,7 @@ type Jwt struct {
 	ExpiresIn       int    `mapstructure:"expires_in"`
 	RefreshTokenTTL int    `mapstructure:"refresh_token_ttl"`
 	Issuer          string `mapstructure:"issuer"`
+	ResetTokenTTL   int    `mapstructure:"reset_token_ttl"`
 }
 
 type Redis struct {
