@@ -1,10 +1,13 @@
 package email
 
 import (
+	"fmt"
 	"github.com/isd-sgcu/johnjud-auth/cfgldr"
 	"github.com/isd-sgcu/johnjud-auth/pkg/service/email"
+	"github.com/pkg/errors"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	"net/http"
 )
 
 type serviceImpl struct {
@@ -17,10 +20,14 @@ func (s *serviceImpl) SendEmail(subject string, toName string, toAddress string,
 	to := mail.NewEmail(toName, toAddress)
 	message := mail.NewSingleEmail(from, subject, to, content, content)
 
-	_, err := s.client.Send(message)
+	resp, err := s.client.Send(message)
 	if err != nil {
 		return err
 	}
+	if resp.StatusCode != http.StatusAccepted {
+		return errors.New(fmt.Sprintf("%d status code", resp.StatusCode))
+	}
+
 	return nil
 }
 
