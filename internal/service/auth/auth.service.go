@@ -195,5 +195,39 @@ func (s *serviceImpl) ForgotPassword(_ context.Context, request *authProto.Forgo
 }
 
 func (s *serviceImpl) ResetPassword(_ context.Context, request *authProto.ResetPasswordRequest) (*authProto.ResetPasswordResponse, error) {
-	return nil, nil
+	resetTokenCache, err := s.tokenService.FindResetPasswordToken(request.Token)
+	if err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	userDb := &model.User{}
+	if err := s.userRepo.FindById(resetTokenCache.UserID, userDb); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, constant.UserNotFoundErrorMessage)
+		}
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	err = s.bcryptUtil.CompareHashedPassword(userDb.Password, request.Password)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, constant.IncorrectPasswordErrorMessage)
+	}
+
+	hashPassword, err := s.bcryptUtil.GenerateHashedPassword(request.Password)
+	if err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	userDb.Password = hashPassword
+	if err := s.userRepo.Update(resetTokenCache.UserID, userDb); err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	if err := s.tokenService.RemoveResetPasswordToken(request.Token); err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	return &authProto.ResetPasswordResponse{
+		IsSuccess: true,
+	}, nil
 }
