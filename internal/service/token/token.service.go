@@ -175,7 +175,7 @@ func (s *serviceImpl) CreateResetPasswordToken(userId string) (string, error) {
 	tokenCache := &tokenDto.ResetPasswordTokenCache{
 		UserID: userId,
 	}
-	err := s.resetPasswordTokenCache.SetValue(resetPasswordToken, tokenCache, 900)
+	err := s.resetPasswordTokenCache.SetValue(resetPasswordToken, tokenCache, s.jwtService.GetConfig().ResetTokenTTL)
 	if err != nil {
 		return "", err
 	}

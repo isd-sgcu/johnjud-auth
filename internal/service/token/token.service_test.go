@@ -48,6 +48,7 @@ func (t *TokenServiceTest) SetupTest() {
 		ExpiresIn:       3600,
 		RefreshTokenTTL: 604800,
 		Issuer:          "testIssuer",
+		ResetTokenTTL:   900,
 	}
 	validateToken := ""
 
@@ -592,7 +593,8 @@ func (t *TokenServiceTest) TestCreateResetPasswordTokenSuccess() {
 	uuidUtil := utils.UuidUtilMock{}
 
 	uuidUtil.On("GetNewUUID").Return(t.refreshToken)
-	resetPasswordTokenRepo.EXPECT().SetValue(t.refreshToken.String(), tokenCache, 900).Return(nil)
+	jwtService.On("GetConfig").Return(t.jwtConfig)
+	resetPasswordTokenRepo.EXPECT().SetValue(t.refreshToken.String(), tokenCache, t.jwtConfig.ResetTokenTTL).Return(nil)
 
 	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.CreateResetPasswordToken(t.userId)
@@ -618,7 +620,8 @@ func (t *TokenServiceTest) TestCreateResetPasswordTokenFailed() {
 	uuidUtil := utils.UuidUtilMock{}
 
 	uuidUtil.On("GetNewUUID").Return(t.refreshToken)
-	resetPasswordTokenRepo.EXPECT().SetValue(t.refreshToken.String(), tokenCache, 900).Return(cacheErr)
+	jwtService.On("GetConfig").Return(t.jwtConfig)
+	resetPasswordTokenRepo.EXPECT().SetValue(t.refreshToken.String(), tokenCache, t.jwtConfig.ResetTokenTTL).Return(cacheErr)
 
 	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.CreateResetPasswordToken(t.userId)
