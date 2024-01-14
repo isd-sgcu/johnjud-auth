@@ -904,7 +904,7 @@ func (t *AuthServiceTest) TestForgotPasswordSendEmailFailed() {
 	assert.Equal(t.T(), expected, err)
 }
 
-func (t *AuthServiceTest) ResetPasswordSuccess() {
+func (t *AuthServiceTest) TestResetPasswordSuccess() {
 	resetTokenCache := &tokenDto.ResetPasswordTokenCache{
 		UserID: faker.UUIDDigit(),
 	}
@@ -918,6 +918,7 @@ func (t *AuthServiceTest) ResetPasswordSuccess() {
 		Lastname:  faker.LastName(),
 		Role:      constant.USER,
 	}
+	comparePasswordErr := errors.New("Internal error")
 	hashedPassword := faker.Word()
 	updateUserDb := &model.User{
 		Base: model.Base{
@@ -944,7 +945,7 @@ func (t *AuthServiceTest) ResetPasswordSuccess() {
 
 	tokenService.On("FindResetPasswordToken", t.resetPasswordRequest.Token).Return(resetTokenCache, nil)
 	userRepo.On("FindById", resetTokenCache.UserID, &model.User{}).Return(userDb, nil)
-	bcryptUtil.On("CompareHashedPassword", userDb.Password, t.resetPasswordRequest.Password).Return(nil)
+	bcryptUtil.On("CompareHashedPassword", userDb.Password, t.resetPasswordRequest.Password).Return(comparePasswordErr)
 	bcryptUtil.On("GenerateHashedPassword", t.resetPasswordRequest.Password).Return(hashedPassword, nil)
 	userRepo.On("Update", resetTokenCache.UserID, updateUserDb).Return(updateUserDb, nil)
 	tokenService.On("RemoveResetPasswordToken", t.resetPasswordRequest.Token).Return(nil)
@@ -956,7 +957,7 @@ func (t *AuthServiceTest) ResetPasswordSuccess() {
 	assert.Equal(t.T(), expected, actual)
 }
 
-func (t *AuthServiceTest) ResetPasswordFindTokenFailed() {
+func (t *AuthServiceTest) TestResetPasswordFindTokenFailed() {
 	findTokenErr := errors.New("Internal error")
 
 	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
@@ -978,7 +979,7 @@ func (t *AuthServiceTest) ResetPasswordFindTokenFailed() {
 	assert.Equal(t.T(), expected, err)
 }
 
-func (t *AuthServiceTest) ResetPasswordFindUserNotFound() {
+func (t *AuthServiceTest) TestResetPasswordFindUserNotFound() {
 	resetTokenCache := &tokenDto.ResetPasswordTokenCache{
 		UserID: faker.UUIDDigit(),
 	}
@@ -1004,7 +1005,7 @@ func (t *AuthServiceTest) ResetPasswordFindUserNotFound() {
 	assert.Equal(t.T(), expected, err)
 }
 
-func (t *AuthServiceTest) ResetPasswordFindUserInternalError() {
+func (t *AuthServiceTest) TestResetPasswordFindUserInternalError() {
 	resetTokenCache := &tokenDto.ResetPasswordTokenCache{
 		UserID: faker.UUIDDigit(),
 	}
@@ -1030,7 +1031,7 @@ func (t *AuthServiceTest) ResetPasswordFindUserInternalError() {
 	assert.Equal(t.T(), expected, err)
 }
 
-func (t *AuthServiceTest) ResetPasswordSamePassword() {
+func (t *AuthServiceTest) TestResetPasswordSamePassword() {
 	resetTokenCache := &tokenDto.ResetPasswordTokenCache{
 		UserID: faker.UUIDDigit(),
 	}
@@ -1044,7 +1045,6 @@ func (t *AuthServiceTest) ResetPasswordSamePassword() {
 		Lastname:  faker.LastName(),
 		Role:      constant.USER,
 	}
-	comparePasswordFailed := errors.New("Internal error")
 
 	expected := status.Error(codes.InvalidArgument, constant.IncorrectPasswordErrorMessage)
 
@@ -1058,7 +1058,7 @@ func (t *AuthServiceTest) ResetPasswordSamePassword() {
 
 	tokenService.On("FindResetPasswordToken", t.resetPasswordRequest.Token).Return(resetTokenCache, nil)
 	userRepo.On("FindById", resetTokenCache.UserID, &model.User{}).Return(userDb, nil)
-	bcryptUtil.On("CompareHashedPassword", userDb.Password, t.resetPasswordRequest.Password).Return(comparePasswordFailed)
+	bcryptUtil.On("CompareHashedPassword", userDb.Password, t.resetPasswordRequest.Password).Return(nil)
 
 	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.ResetPassword(t.ctx, t.resetPasswordRequest)
@@ -1067,10 +1067,11 @@ func (t *AuthServiceTest) ResetPasswordSamePassword() {
 	assert.Equal(t.T(), expected, err)
 }
 
-func (t *AuthServiceTest) ResetPasswordGenerateHashedPasswordFailed() {
+func (t *AuthServiceTest) TestResetPasswordGenerateHashedPasswordFailed() {
 	resetTokenCache := &tokenDto.ResetPasswordTokenCache{
 		UserID: faker.UUIDDigit(),
 	}
+	comparePasswordErr := errors.New("Internal error")
 	userDb := &model.User{
 		Base: model.Base{
 			ID: uuid.New(),
@@ -1095,7 +1096,7 @@ func (t *AuthServiceTest) ResetPasswordGenerateHashedPasswordFailed() {
 
 	tokenService.On("FindResetPasswordToken", t.resetPasswordRequest.Token).Return(resetTokenCache, nil)
 	userRepo.On("FindById", resetTokenCache.UserID, &model.User{}).Return(userDb, nil)
-	bcryptUtil.On("CompareHashedPassword", userDb.Password, t.resetPasswordRequest.Password).Return(nil)
+	bcryptUtil.On("CompareHashedPassword", userDb.Password, t.resetPasswordRequest.Password).Return(comparePasswordErr)
 	bcryptUtil.On("GenerateHashedPassword", t.resetPasswordRequest.Password).Return("", generatePasswordErr)
 
 	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
@@ -1105,7 +1106,7 @@ func (t *AuthServiceTest) ResetPasswordGenerateHashedPasswordFailed() {
 	assert.Equal(t.T(), expected, err)
 }
 
-func (t *AuthServiceTest) ResetPasswordUpdateUserFailed() {
+func (t *AuthServiceTest) TestResetPasswordUpdateUserFailed() {
 	resetTokenCache := &tokenDto.ResetPasswordTokenCache{
 		UserID: faker.UUIDDigit(),
 	}
@@ -1119,6 +1120,7 @@ func (t *AuthServiceTest) ResetPasswordUpdateUserFailed() {
 		Lastname:  faker.LastName(),
 		Role:      constant.USER,
 	}
+	comparePasswordErr := errors.New("Internal error")
 	hashedPassword := faker.Word()
 	updateUserDb := &model.User{
 		Base: model.Base{
@@ -1144,7 +1146,7 @@ func (t *AuthServiceTest) ResetPasswordUpdateUserFailed() {
 
 	tokenService.On("FindResetPasswordToken", t.resetPasswordRequest.Token).Return(resetTokenCache, nil)
 	userRepo.On("FindById", resetTokenCache.UserID, &model.User{}).Return(userDb, nil)
-	bcryptUtil.On("CompareHashedPassword", userDb.Password, t.resetPasswordRequest.Password).Return(nil)
+	bcryptUtil.On("CompareHashedPassword", userDb.Password, t.resetPasswordRequest.Password).Return(comparePasswordErr)
 	bcryptUtil.On("GenerateHashedPassword", t.resetPasswordRequest.Password).Return(hashedPassword, nil)
 	userRepo.On("Update", resetTokenCache.UserID, updateUserDb).Return(nil, updateUserErr)
 
@@ -1155,7 +1157,7 @@ func (t *AuthServiceTest) ResetPasswordUpdateUserFailed() {
 	assert.Equal(t.T(), expected, err)
 }
 
-func (t *AuthServiceTest) ResetPasswordRemoveTokenFailed() {
+func (t *AuthServiceTest) TestResetPasswordRemoveTokenFailed() {
 	resetTokenCache := &tokenDto.ResetPasswordTokenCache{
 		UserID: faker.UUIDDigit(),
 	}
@@ -1169,6 +1171,7 @@ func (t *AuthServiceTest) ResetPasswordRemoveTokenFailed() {
 		Lastname:  faker.LastName(),
 		Role:      constant.USER,
 	}
+	comparePasswordErr := errors.New("Internal error")
 	hashedPassword := faker.Word()
 	updateUserDb := &model.User{
 		Base: model.Base{
@@ -1194,7 +1197,7 @@ func (t *AuthServiceTest) ResetPasswordRemoveTokenFailed() {
 
 	tokenService.On("FindResetPasswordToken", t.resetPasswordRequest.Token).Return(resetTokenCache, nil)
 	userRepo.On("FindById", resetTokenCache.UserID, &model.User{}).Return(userDb, nil)
-	bcryptUtil.On("CompareHashedPassword", userDb.Password, t.resetPasswordRequest.Password).Return(nil)
+	bcryptUtil.On("CompareHashedPassword", userDb.Password, t.resetPasswordRequest.Password).Return(comparePasswordErr)
 	bcryptUtil.On("GenerateHashedPassword", t.resetPasswordRequest.Password).Return(hashedPassword, nil)
 	userRepo.On("Update", resetTokenCache.UserID, updateUserDb).Return(updateUserDb, nil)
 	tokenService.On("RemoveResetPasswordToken", t.resetPasswordRequest.Token).Return(removeTokenErr)

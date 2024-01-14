@@ -209,7 +209,7 @@ func (s *serviceImpl) ResetPassword(_ context.Context, request *authProto.ResetP
 	}
 
 	err = s.bcryptUtil.CompareHashedPassword(userDb.Password, request.Password)
-	if err != nil {
+	if err == nil {
 		return nil, status.Error(codes.InvalidArgument, constant.IncorrectPasswordErrorMessage)
 	}
 
