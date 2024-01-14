@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"github.com/isd-sgcu/johnjud-auth/cfgldr"
 	"github.com/isd-sgcu/johnjud-auth/internal/constant"
 	tokenDto "github.com/isd-sgcu/johnjud-auth/internal/domain/dto/token"
@@ -28,13 +29,14 @@ import (
 
 type AuthServiceTest struct {
 	suite.Suite
-	ctx                 context.Context
-	signupRequest       *authProto.SignUpRequest
-	signInRequest       *authProto.SignInRequest
-	signOutRequest      *authProto.SignOutRequest
-	refreshTokenRequest *authProto.RefreshTokenRequest
-	validateRequest     *authProto.ValidateRequest
-	authConfig          cfgldr.Auth
+	ctx                   context.Context
+	signupRequest         *authProto.SignUpRequest
+	signInRequest         *authProto.SignInRequest
+	signOutRequest        *authProto.SignOutRequest
+	refreshTokenRequest   *authProto.RefreshTokenRequest
+	validateRequest       *authProto.ValidateRequest
+	forgotPasswordRequest *authProto.ForgotPasswordRequest
+	authConfig            cfgldr.Auth
 }
 
 func TestAuthService(t *testing.T) {
@@ -62,6 +64,9 @@ func (t *AuthServiceTest) SetupTest() {
 	refreshTokenRequest := &authProto.RefreshTokenRequest{
 		RefreshToken: faker.UUIDDigit(),
 	}
+	forgotPasswordRequest := &authProto.ForgotPasswordRequest{
+		Email: faker.Email(),
+	}
 	authConfig := cfgldr.Auth{
 		ClientURL: "localhost",
 	}
@@ -72,6 +77,7 @@ func (t *AuthServiceTest) SetupTest() {
 	t.signOutRequest = signOutRequest
 	t.validateRequest = validateRequest
 	t.refreshTokenRequest = refreshTokenRequest
+	t.forgotPasswordRequest = forgotPasswordRequest
 	t.authConfig = authConfig
 }
 
@@ -762,4 +768,132 @@ func (t *AuthServiceTest) TestSignOutDeleteAuthSessionFailed() {
 	assert.Equal(t.T(), codes.Internal, st.Code())
 	assert.True(t.T(), ok)
 	assert.Equal(t.T(), expected.Error(), err.Error())
+}
+
+func (t *AuthServiceTest) TestForgotPasswordSuccess() {
+	userDb := &model.User{
+		Base: model.Base{
+			ID: uuid.New(),
+		},
+		Email:     t.forgotPasswordRequest.Email,
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
+	}
+	resetPasswordToken := faker.Word()
+	resetPasswordURL := fmt.Sprintf("%s/reset-password/%s", t.authConfig.ClientURL, resetPasswordToken)
+	emailContent := fmt.Sprintf("Please click the following url to reset password %s", resetPasswordURL)
+
+	expected := &authProto.ForgotPasswordResponse{Url: resetPasswordURL}
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	userRepo.On("FindByEmail", t.forgotPasswordRequest.Email, &model.User{}).Return(userDb, nil)
+	tokenService.On("CreateResetPasswordToken", userDb.ID.String()).Return(resetPasswordToken, nil)
+	emailService.On("SendEmail", constant.ResetPasswordSubject, userDb.Firstname, userDb.Email, emailContent).Return(nil)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ForgotPassword(t.ctx, t.forgotPasswordRequest)
+
+	assert.Nil(t.T(), err)
+	assert.Equal(t.T(), expected, actual)
+}
+
+func (t *AuthServiceTest) TestForgotPasswordUserNotFound() {
+	findUserErr := gorm.ErrRecordNotFound
+
+	expected := status.Error(codes.NotFound, constant.UserNotFoundErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	userRepo.On("FindByEmail", t.forgotPasswordRequest.Email, &model.User{}).Return(nil, findUserErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ForgotPassword(t.ctx, t.forgotPasswordRequest)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *AuthServiceTest) TestForgotPasswordCreateTokenFailed() {
+	userDb := &model.User{
+		Base: model.Base{
+			ID: uuid.New(),
+		},
+		Email:     t.forgotPasswordRequest.Email,
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
+	}
+	createTokenFailed := errors.New("Internal error")
+
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	userRepo.On("FindByEmail", t.forgotPasswordRequest.Email, &model.User{}).Return(userDb, nil)
+	tokenService.On("CreateResetPasswordToken", userDb.ID.String()).Return("", createTokenFailed)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ForgotPassword(t.ctx, t.forgotPasswordRequest)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *AuthServiceTest) TestForgotPasswordSendEmailFailed() {
+	userDb := &model.User{
+		Base: model.Base{
+			ID: uuid.New(),
+		},
+		Email:     t.forgotPasswordRequest.Email,
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
+	}
+	resetPasswordToken := faker.Word()
+	resetPasswordURL := fmt.Sprintf("%s/reset-password/%s", t.authConfig.ClientURL, resetPasswordToken)
+	emailContent := fmt.Sprintf("Please click the following url to reset password %s", resetPasswordURL)
+	sendEmailErr := errors.New("Internal error")
+
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	userRepo.On("FindByEmail", t.forgotPasswordRequest.Email, &model.User{}).Return(userDb, nil)
+	tokenService.On("CreateResetPasswordToken", userDb.ID.String()).Return(resetPasswordToken, nil)
+	emailService.On("SendEmail", constant.ResetPasswordSubject, userDb.Firstname, userDb.Email, emailContent).Return(sendEmailErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ForgotPassword(t.ctx, t.forgotPasswordRequest)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
 }

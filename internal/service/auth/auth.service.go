@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"github.com/isd-sgcu/johnjud-auth/cfgldr"
 	"github.com/isd-sgcu/johnjud-auth/internal/constant"
 	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
@@ -159,7 +160,27 @@ func (s *serviceImpl) SignOut(_ context.Context, request *authProto.SignOutReque
 }
 
 func (s *serviceImpl) ForgotPassword(_ context.Context, request *authProto.ForgotPasswordRequest) (*authProto.ForgotPasswordResponse, error) {
-	return nil, nil
+	user := &model.User{}
+	err := s.userRepo.FindByEmail(request.Email, user)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, constant.UserNotFoundErrorMessage)
+	}
+
+	resetPasswordToken, err := s.tokenService.CreateResetPasswordToken(user.ID.String())
+	if err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	resetPasswordURL := fmt.Sprintf("%s/reset-password/%s", s.config.ClientURL, resetPasswordToken)
+	emailSubject := constant.ResetPasswordSubject
+	emailContent := fmt.Sprintf("Please click the following url to reset password %s", resetPasswordURL)
+	if err := s.emailService.SendEmail(emailSubject, user.Firstname, user.Email, emailContent); err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	return &authProto.ForgotPasswordResponse{
+		Url: resetPasswordURL,
+	}, nil
 }
 
 func (s *serviceImpl) ResetPassword(_ context.Context, request *authProto.ResetPasswordRequest) (*authProto.ResetPasswordResponse, error) {
