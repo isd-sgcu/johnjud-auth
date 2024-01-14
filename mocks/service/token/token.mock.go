@@ -52,3 +52,26 @@ func (m *TokenServiceMock) RemoveRefreshTokenCache(refreshToken string) error {
 	args := m.Called(refreshToken)
 	return args.Error(0)
 }
+
+func (m *TokenServiceMock) CreateResetPasswordToken(userId string) (string, error) {
+	args := m.Called(userId)
+	if args.Get(0) != "" {
+		return args.Get(0).(string), nil
+	}
+
+	return "", args.Error(1)
+}
+
+func (m *TokenServiceMock) FindResetPasswordToken(token string) (*tokenDto.ResetPasswordTokenCache, error) {
+	args := m.Called(token)
+	if args.Get(0) != nil {
+		return args.Get(0).(*tokenDto.ResetPasswordTokenCache), nil
+	}
+
+	return nil, args.Error(1)
+}
+
+func (m *TokenServiceMock) RemoveResetPasswordToken(token string) error {
+	args := m.Called(token)
+	return args.Error(0)
+}

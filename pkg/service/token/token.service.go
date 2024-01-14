@@ -13,4 +13,7 @@ type Service interface {
 	RemoveAccessTokenCache(authSessionId string) error
 	FindRefreshTokenCache(refreshToken string) (*tokenDto.RefreshTokenCache, error)
 	RemoveRefreshTokenCache(refreshToken string) error
+	CreateResetPasswordToken(userId string) (string, error)
+	FindResetPasswordToken(token string) (*tokenDto.ResetPasswordTokenCache, error)
+	RemoveResetPasswordToken(token string) error
 }

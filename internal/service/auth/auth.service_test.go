@@ -2,11 +2,14 @@ package auth
 
 import (
 	"context"
+	"fmt"
+	"github.com/isd-sgcu/johnjud-auth/cfgldr"
 	"github.com/isd-sgcu/johnjud-auth/internal/constant"
 	tokenDto "github.com/isd-sgcu/johnjud-auth/internal/domain/dto/token"
 	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
 	"github.com/isd-sgcu/johnjud-auth/mocks/repository/auth"
 	"github.com/isd-sgcu/johnjud-auth/mocks/repository/user"
+	"github.com/isd-sgcu/johnjud-auth/mocks/service/email"
 	"github.com/isd-sgcu/johnjud-auth/mocks/service/token"
 	"github.com/isd-sgcu/johnjud-auth/mocks/utils"
 	"testing"
@@ -26,12 +29,14 @@ import (
 
 type AuthServiceTest struct {
 	suite.Suite
-	ctx                 context.Context
-	signupRequest       *authProto.SignUpRequest
-	signInRequest       *authProto.SignInRequest
-	signOutRequest      *authProto.SignOutRequest
-	refreshTokenRequest *authProto.RefreshTokenRequest
-	validateRequest     *authProto.ValidateRequest
+	ctx                   context.Context
+	signupRequest         *authProto.SignUpRequest
+	signInRequest         *authProto.SignInRequest
+	signOutRequest        *authProto.SignOutRequest
+	refreshTokenRequest   *authProto.RefreshTokenRequest
+	validateRequest       *authProto.ValidateRequest
+	forgotPasswordRequest *authProto.ForgotPasswordRequest
+	authConfig            cfgldr.Auth
 }
 
 func TestAuthService(t *testing.T) {
@@ -59,6 +64,12 @@ func (t *AuthServiceTest) SetupTest() {
 	refreshTokenRequest := &authProto.RefreshTokenRequest{
 		RefreshToken: faker.UUIDDigit(),
 	}
+	forgotPasswordRequest := &authProto.ForgotPasswordRequest{
+		Email: faker.Email(),
+	}
+	authConfig := cfgldr.Auth{
+		ClientURL: "localhost",
+	}
 
 	t.ctx = ctx
 	t.signupRequest = signupRequest
@@ -66,6 +77,8 @@ func (t *AuthServiceTest) SetupTest() {
 	t.signOutRequest = signOutRequest
 	t.validateRequest = validateRequest
 	t.refreshTokenRequest = refreshTokenRequest
+	t.forgotPasswordRequest = forgotPasswordRequest
+	t.authConfig = authConfig
 }
 
 func (t *AuthServiceTest) TestSignupSuccess() {
@@ -102,12 +115,13 @@ func (t *AuthServiceTest) TestSignupSuccess() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	bcryptUtil.On("GenerateHashedPassword", t.signupRequest.Password).Return(hashedPassword, nil)
 	userRepo.On("Create", newUser).Return(createdUser, nil)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.SignUp(t.ctx, t.signupRequest)
 
 	assert.Nil(t.T(), err)
@@ -124,11 +138,12 @@ func (t *AuthServiceTest) TestSignupHashPasswordFailed() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	bcryptUtil.On("GenerateHashedPassword", t.signupRequest.Password).Return("", hashPasswordErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.SignUp(t.ctx, t.signupRequest)
 
 	status, ok := status.FromError(err)
@@ -157,12 +172,13 @@ func (t *AuthServiceTest) TestSignupCreateUserDuplicateConstraint() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	bcryptUtil.On("GenerateHashedPassword", t.signupRequest.Password).Return(hashedPassword, nil)
 	userRepo.On("Create", newUser).Return(nil, createUserErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.SignUp(t.ctx, t.signupRequest)
 
 	status, ok := status.FromError(err)
@@ -191,12 +207,13 @@ func (t *AuthServiceTest) TestSignupCreateUserInternalFailed() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	bcryptUtil.On("GenerateHashedPassword", t.signupRequest.Password).Return(hashedPassword, nil)
 	userRepo.On("Create", newUser).Return(nil, createUserErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.SignUp(t.ctx, t.signupRequest)
 
 	status, ok := status.FromError(err)
@@ -234,6 +251,7 @@ func (t *AuthServiceTest) TestSignInSuccess() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	userRepo.On("FindByEmail", t.signInRequest.Email, &model.User{}).Return(existUser, nil)
@@ -241,7 +259,7 @@ func (t *AuthServiceTest) TestSignInSuccess() {
 	authRepo.EXPECT().Create(newAuthSession).Return(nil)
 	tokenService.On("CreateCredential", existUser.ID.String(), existUser.Role, newAuthSession.ID.String()).Return(credential, nil)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.SignIn(t.ctx, t.signInRequest)
 
 	assert.Nil(t.T(), err)
@@ -259,11 +277,12 @@ func (t *AuthServiceTest) TestSignInUserNotFound() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	userRepo.On("FindByEmail", t.signInRequest.Email, &model.User{}).Return(nil, findUserErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.SignIn(t.ctx, t.signInRequest)
 
 	status, ok := status.FromError(err)
@@ -293,12 +312,13 @@ func (t *AuthServiceTest) TestSignInUnmatchedPassword() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	userRepo.On("FindByEmail", t.signInRequest.Email, &model.User{}).Return(existUser, nil)
 	bcryptUtil.On("CompareHashedPassword", existUser.Password, t.signInRequest.Password).Return(comparePwdErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.SignIn(t.ctx, t.signInRequest)
 
 	status, ok := status.FromError(err)
@@ -331,13 +351,14 @@ func (t *AuthServiceTest) TestSignInCreateAuthSessionFailed() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	userRepo.On("FindByEmail", t.signInRequest.Email, &model.User{}).Return(existUser, nil)
 	bcryptUtil.On("CompareHashedPassword", existUser.Password, t.signInRequest.Password).Return(nil)
 	authRepo.EXPECT().Create(newAuthSession).Return(createAuthSessionErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.SignIn(t.ctx, t.signInRequest)
 
 	st, ok := status.FromError(err)
@@ -370,6 +391,7 @@ func (t *AuthServiceTest) TestSignInCreateCredentialFailed() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	userRepo.On("FindByEmail", t.signInRequest.Email, &model.User{}).Return(existUser, nil)
@@ -377,7 +399,7 @@ func (t *AuthServiceTest) TestSignInCreateCredentialFailed() {
 	authRepo.EXPECT().Create(newAuthSession).Return(nil)
 	tokenService.On("CreateCredential", existUser.ID.String(), existUser.Role, newAuthSession.ID.String()).Return(nil, createCredentialErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.SignIn(t.ctx, t.signInRequest)
 
 	status, ok := status.FromError(err)
@@ -405,11 +427,12 @@ func (t *AuthServiceTest) TestValidateSuccess() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	tokenService.On("Validate", t.validateRequest.Token).Return(userCredential, nil)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.Validate(t.ctx, t.validateRequest)
 
 	assert.Nil(t.T(), err)
@@ -425,11 +448,12 @@ func (t *AuthServiceTest) TestValidateFailed() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	tokenService.On("Validate", t.validateRequest.Token).Return(nil, validateErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.Validate(t.ctx, t.validateRequest)
 
 	st, ok := status.FromError(err)
@@ -460,13 +484,14 @@ func (t *AuthServiceTest) TestRefreshTokenSuccess() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	tokenService.On("FindRefreshTokenCache", t.refreshTokenRequest.RefreshToken).Return(refreshTokenCache, nil)
 	tokenService.On("CreateCredential", refreshTokenCache.UserID, refreshTokenCache.Role, refreshTokenCache.AuthSessionID).Return(credential, nil)
 	tokenService.On("RemoveRefreshTokenCache", t.refreshTokenRequest.RefreshToken).Return(nil)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.RefreshToken(t.ctx, t.refreshTokenRequest)
 
 	assert.Nil(t.T(), err)
@@ -483,11 +508,12 @@ func (t *AuthServiceTest) TestRefreshTokenInvalid() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	tokenService.On("FindRefreshTokenCache", t.refreshTokenRequest.RefreshToken).Return(nil, findTokenErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.RefreshToken(t.ctx, t.refreshTokenRequest)
 
 	st, ok := status.FromError(err)
@@ -507,11 +533,12 @@ func (t *AuthServiceTest) TestRefreshTokenFindTokenFailed() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	tokenService.On("FindRefreshTokenCache", t.refreshTokenRequest.RefreshToken).Return(nil, findTokenErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.RefreshToken(t.ctx, t.refreshTokenRequest)
 
 	st, ok := status.FromError(err)
@@ -536,12 +563,13 @@ func (t *AuthServiceTest) TestRefreshTokenCreateCredentialFailed() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	tokenService.On("FindRefreshTokenCache", t.refreshTokenRequest.RefreshToken).Return(refreshTokenCache, nil)
 	tokenService.On("CreateCredential", refreshTokenCache.UserID, refreshTokenCache.Role, refreshTokenCache.AuthSessionID).Return(nil, createCredentialErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.RefreshToken(t.ctx, t.refreshTokenRequest)
 
 	st, ok := status.FromError(err)
@@ -571,13 +599,14 @@ func (t *AuthServiceTest) TestRefreshTokenRemoveTokenFailed() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	tokenService.On("FindRefreshTokenCache", t.refreshTokenRequest.RefreshToken).Return(refreshTokenCache, nil)
 	tokenService.On("CreateCredential", refreshTokenCache.UserID, refreshTokenCache.Role, refreshTokenCache.AuthSessionID).Return(credential, nil)
 	tokenService.On("RemoveRefreshTokenCache", t.refreshTokenRequest.RefreshToken).Return(removeTokenErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.RefreshToken(t.ctx, t.refreshTokenRequest)
 
 	st, ok := status.FromError(err)
@@ -604,6 +633,7 @@ func (t *AuthServiceTest) TestSignOutSuccess() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	tokenService.On("Validate", t.signOutRequest.Token).Return(userCredential, nil)
@@ -611,7 +641,7 @@ func (t *AuthServiceTest) TestSignOutSuccess() {
 	tokenService.On("RemoveAccessTokenCache", userCredential.AuthSessionID).Return(nil)
 	authRepo.EXPECT().Delete(userCredential.AuthSessionID).Return(nil)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.SignOut(t.ctx, t.signOutRequest)
 
 	assert.Nil(t.T(), err)
@@ -626,11 +656,12 @@ func (t *AuthServiceTest) TestSignOutValidateFailed() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	tokenService.On("Validate", t.signOutRequest.Token).Return(nil, validateErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.SignOut(t.ctx, t.signOutRequest)
 
 	st, ok := status.FromError(err)
@@ -656,12 +687,13 @@ func (t *AuthServiceTest) TestSignOutRemoveRefreshTokenCacheFailed() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	tokenService.On("Validate", t.signOutRequest.Token).Return(userCredential, nil)
 	tokenService.On("RemoveRefreshTokenCache", userCredential.RefreshToken).Return(removeTokenErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.SignOut(t.ctx, t.signOutRequest)
 
 	st, ok := status.FromError(err)
@@ -687,13 +719,14 @@ func (t *AuthServiceTest) TestSignOutRemoveAccessTokenCacheFailed() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	tokenService.On("Validate", t.signOutRequest.Token).Return(userCredential, nil)
 	tokenService.On("RemoveRefreshTokenCache", userCredential.RefreshToken).Return(nil)
 	tokenService.On("RemoveAccessTokenCache", userCredential.AuthSessionID).Return(removeTokenErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.SignOut(t.ctx, t.signOutRequest)
 
 	st, ok := status.FromError(err)
@@ -719,6 +752,7 @@ func (t *AuthServiceTest) TestSignOutDeleteAuthSessionFailed() {
 	authRepo := mock_auth.NewMockRepository(controller)
 	userRepo := user.UserRepositoryMock{}
 	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
 	bcryptUtil := utils.BcryptUtilMock{}
 
 	tokenService.On("Validate", t.signOutRequest.Token).Return(userCredential, nil)
@@ -726,7 +760,7 @@ func (t *AuthServiceTest) TestSignOutDeleteAuthSessionFailed() {
 	tokenService.On("RemoveAccessTokenCache", userCredential.AuthSessionID).Return(nil)
 	authRepo.EXPECT().Delete(userCredential.AuthSessionID).Return(deleteAuthErr)
 
-	authSvc := NewService(authRepo, &userRepo, &tokenService, &bcryptUtil)
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.SignOut(t.ctx, t.signOutRequest)
 
 	st, ok := status.FromError(err)
@@ -734,4 +768,132 @@ func (t *AuthServiceTest) TestSignOutDeleteAuthSessionFailed() {
 	assert.Equal(t.T(), codes.Internal, st.Code())
 	assert.True(t.T(), ok)
 	assert.Equal(t.T(), expected.Error(), err.Error())
+}
+
+func (t *AuthServiceTest) TestForgotPasswordSuccess() {
+	userDb := &model.User{
+		Base: model.Base{
+			ID: uuid.New(),
+		},
+		Email:     t.forgotPasswordRequest.Email,
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
+	}
+	resetPasswordToken := faker.Word()
+	resetPasswordURL := fmt.Sprintf("%s/reset-password/%s", t.authConfig.ClientURL, resetPasswordToken)
+	emailContent := fmt.Sprintf("Please click the following url to reset password %s", resetPasswordURL)
+
+	expected := &authProto.ForgotPasswordResponse{Url: resetPasswordURL}
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	userRepo.On("FindByEmail", t.forgotPasswordRequest.Email, &model.User{}).Return(userDb, nil)
+	tokenService.On("CreateResetPasswordToken", userDb.ID.String()).Return(resetPasswordToken, nil)
+	emailService.On("SendEmail", constant.ResetPasswordSubject, userDb.Firstname, userDb.Email, emailContent).Return(nil)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ForgotPassword(t.ctx, t.forgotPasswordRequest)
+
+	assert.Nil(t.T(), err)
+	assert.Equal(t.T(), expected, actual)
+}
+
+func (t *AuthServiceTest) TestForgotPasswordUserNotFound() {
+	findUserErr := gorm.ErrRecordNotFound
+
+	expected := status.Error(codes.NotFound, constant.UserNotFoundErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	userRepo.On("FindByEmail", t.forgotPasswordRequest.Email, &model.User{}).Return(nil, findUserErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ForgotPassword(t.ctx, t.forgotPasswordRequest)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *AuthServiceTest) TestForgotPasswordCreateTokenFailed() {
+	userDb := &model.User{
+		Base: model.Base{
+			ID: uuid.New(),
+		},
+		Email:     t.forgotPasswordRequest.Email,
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
+	}
+	createTokenFailed := errors.New("Internal error")
+
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	userRepo.On("FindByEmail", t.forgotPasswordRequest.Email, &model.User{}).Return(userDb, nil)
+	tokenService.On("CreateResetPasswordToken", userDb.ID.String()).Return("", createTokenFailed)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ForgotPassword(t.ctx, t.forgotPasswordRequest)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *AuthServiceTest) TestForgotPasswordSendEmailFailed() {
+	userDb := &model.User{
+		Base: model.Base{
+			ID: uuid.New(),
+		},
+		Email:     t.forgotPasswordRequest.Email,
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
+	}
+	resetPasswordToken := faker.Word()
+	resetPasswordURL := fmt.Sprintf("%s/reset-password/%s", t.authConfig.ClientURL, resetPasswordToken)
+	emailContent := fmt.Sprintf("Please click the following url to reset password %s", resetPasswordURL)
+	sendEmailErr := errors.New("Internal error")
+
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	userRepo.On("FindByEmail", t.forgotPasswordRequest.Email, &model.User{}).Return(userDb, nil)
+	tokenService.On("CreateResetPasswordToken", userDb.ID.String()).Return(resetPasswordToken, nil)
+	emailService.On("SendEmail", constant.ResetPasswordSubject, userDb.Firstname, userDb.Email, emailContent).Return(sendEmailErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ForgotPassword(t.ctx, t.forgotPasswordRequest)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
 }

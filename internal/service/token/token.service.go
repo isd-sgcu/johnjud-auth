@@ -19,18 +19,20 @@ import (
 )
 
 type serviceImpl struct {
-	jwtService        jwt.Service
-	accessTokenCache  cache.Repository
-	refreshTokenCache cache.Repository
-	uuidUtil          utils.IUuidUtil
+	jwtService              jwt.Service
+	accessTokenCache        cache.Repository
+	refreshTokenCache       cache.Repository
+	resetPasswordTokenCache cache.Repository
+	uuidUtil                utils.IUuidUtil
 }
 
-func NewService(jwtService jwt.Service, accessTokenCache cache.Repository, refreshTokenCache cache.Repository, uuidUtil utils.IUuidUtil) token.Service {
+func NewService(jwtService jwt.Service, accessTokenCache cache.Repository, refreshTokenCache cache.Repository, resetPasswordTokenCache cache.Repository, uuidUtil utils.IUuidUtil) token.Service {
 	return &serviceImpl{
-		jwtService:        jwtService,
-		accessTokenCache:  accessTokenCache,
-		refreshTokenCache: refreshTokenCache,
-		uuidUtil:          uuidUtil,
+		jwtService:              jwtService,
+		accessTokenCache:        accessTokenCache,
+		refreshTokenCache:       refreshTokenCache,
+		resetPasswordTokenCache: resetPasswordTokenCache,
+		uuidUtil:                uuidUtil,
 	}
 }
 
@@ -159,6 +161,42 @@ func (s *serviceImpl) FindRefreshTokenCache(refreshToken string) (*tokenDto.Refr
 
 func (s *serviceImpl) RemoveRefreshTokenCache(refreshToken string) error {
 	err := s.refreshTokenCache.DeleteValue(refreshToken)
+	if err != nil {
+		if err != redis.Nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *serviceImpl) CreateResetPasswordToken(userId string) (string, error) {
+	resetPasswordToken := s.CreateRefreshToken()
+	tokenCache := &tokenDto.ResetPasswordTokenCache{
+		UserID: userId,
+	}
+	err := s.resetPasswordTokenCache.SetValue(resetPasswordToken, tokenCache, s.jwtService.GetConfig().ResetTokenTTL)
+	if err != nil {
+		return "", err
+	}
+	return resetPasswordToken, nil
+}
+
+func (s *serviceImpl) FindResetPasswordToken(token string) (*tokenDto.ResetPasswordTokenCache, error) {
+	tokenCache := &tokenDto.ResetPasswordTokenCache{}
+	err := s.resetPasswordTokenCache.GetValue(token, tokenCache)
+	if err != nil {
+		if err != redis.Nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	return tokenCache, nil
+}
+
+func (s *serviceImpl) RemoveResetPasswordToken(token string) error {
+	err := s.resetPasswordTokenCache.DeleteValue(token)
 	if err != nil {
 		if err != redis.Nil {
 			return err

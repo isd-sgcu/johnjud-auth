@@ -48,6 +48,7 @@ func (t *TokenServiceTest) SetupTest() {
 		ExpiresIn:       3600,
 		RefreshTokenTTL: 604800,
 		Issuer:          "testIssuer",
+		ResetTokenTTL:   900,
 	}
 	validateToken := ""
 
@@ -83,6 +84,7 @@ func (t *TokenServiceTest) TestCreateCredentialSuccess() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("SignAuth", t.userId, t.role, t.authSessionId).Return(t.accessToken, nil)
@@ -91,7 +93,7 @@ func (t *TokenServiceTest) TestCreateCredentialSuccess() {
 	accessTokenRepo.EXPECT().SetValue(t.authSessionId, accessTokenCache, t.jwtConfig.ExpiresIn).Return(nil)
 	refreshTokenRepo.EXPECT().SetValue(t.refreshToken.String(), refreshTokenCache, t.jwtConfig.RefreshTokenTTL).Return(nil)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.CreateCredential(t.userId, t.role, t.authSessionId)
 
 	assert.Nil(t.T(), err)
@@ -109,11 +111,12 @@ func (t *TokenServiceTest) TestCreateCredentialSignAuthFailed() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("SignAuth", t.userId, t.role, t.authSessionId).Return("", signAuthError)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.CreateCredential(t.userId, t.role, t.authSessionId)
 
 	assert.Nil(t.T(), actual)
@@ -134,6 +137,7 @@ func (t *TokenServiceTest) TestCreateCredentialSetAccessTokenFailed() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("SignAuth", t.userId, t.role, t.authSessionId).Return(t.accessToken, nil)
@@ -141,7 +145,7 @@ func (t *TokenServiceTest) TestCreateCredentialSetAccessTokenFailed() {
 	uuidUtil.On("GetNewUUID").Return(t.refreshToken)
 	accessTokenRepo.EXPECT().SetValue(t.authSessionId, accessTokenCache, t.jwtConfig.ExpiresIn).Return(setCacheErr)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.CreateCredential(t.userId, t.role, t.authSessionId)
 
 	assert.Nil(t.T(), actual)
@@ -167,6 +171,7 @@ func (t *TokenServiceTest) TestCreateCredentialSetRefreshTokenFailed() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("SignAuth", t.userId, t.role, t.authSessionId).Return(t.accessToken, nil)
@@ -175,7 +180,7 @@ func (t *TokenServiceTest) TestCreateCredentialSetRefreshTokenFailed() {
 	accessTokenRepo.EXPECT().SetValue(t.authSessionId, accessTokenCache, t.jwtConfig.ExpiresIn).Return(nil)
 	refreshTokenRepo.EXPECT().SetValue(t.refreshToken.String(), refreshTokenCache, t.jwtConfig.RefreshTokenTTL).Return(setCacheErr)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.CreateCredential(t.userId, t.role, t.authSessionId)
 
 	assert.Nil(t.T(), actual)
@@ -207,13 +212,14 @@ func (t *TokenServiceTest) TestValidateSuccess() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("VerifyAuth", t.validateToken).Return(jwtToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
 	accessTokenRepo.EXPECT().GetValue(payloads["auth_session_id"].(string), accessTokenCache).Return(nil)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(t.validateToken)
 
 	assert.Nil(t.T(), err)
@@ -241,12 +247,13 @@ func (t *TokenServiceTest) TestValidateInvalidIssuer() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("VerifyAuth", t.validateToken).Return(jwtToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(t.validateToken)
 
 	assert.Nil(t.T(), actual)
@@ -273,12 +280,13 @@ func (t *TokenServiceTest) TestValidateExpireToken() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("VerifyAuth", t.validateToken).Return(jwtToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(t.validateToken)
 
 	assert.Nil(t.T(), actual)
@@ -293,11 +301,12 @@ func (t *TokenServiceTest) TestValidateVerifyFailed() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("VerifyAuth", t.validateToken).Return(nil, expected)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(t.validateToken)
 
 	assert.Nil(t.T(), actual)
@@ -325,13 +334,14 @@ func (t *TokenServiceTest) TestValidateGetCacheKeyNotFound() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("VerifyAuth", t.validateToken).Return(jwtToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
 	accessTokenRepo.EXPECT().GetValue(payloads["auth_session_id"].(string), accessTokenCache).Return(redis.Nil)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(t.validateToken)
 
 	assert.Nil(t.T(), actual)
@@ -360,13 +370,14 @@ func (t *TokenServiceTest) TestValidateGetCacheInternalFailed() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("VerifyAuth", t.validateToken).Return(jwtToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
 	accessTokenRepo.EXPECT().GetValue(payloads["auth_session_id"].(string), accessTokenCache).Return(getCacheErr)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(t.validateToken)
 
 	assert.Nil(t.T(), actual)
@@ -395,13 +406,14 @@ func (t *TokenServiceTest) TestValidateInvalidToken() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	jwtService.On("VerifyAuth", invalidToken).Return(jwtToken, nil)
 	jwtService.On("GetConfig").Return(t.jwtConfig)
 	accessTokenRepo.EXPECT().GetValue(payloads["auth_session_id"].(string), accessTokenCache).Return(nil)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.Validate(invalidToken)
 
 	assert.Nil(t.T(), actual)
@@ -416,11 +428,12 @@ func (t *TokenServiceTest) TestCreateRefreshTokenSuccess() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	uuidUtil.On("GetNewUUID").Return(t.refreshToken)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual := tokenSvc.CreateRefreshToken()
 
 	assert.Equal(t.T(), expected, actual)
@@ -432,11 +445,12 @@ func (t *TokenServiceTest) TestRemoveAccessTokenCacheSuccess() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	accessTokenRepo.EXPECT().DeleteValue(t.authSessionId).Return(nil)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	err := tokenSvc.RemoveAccessTokenCache(t.authSessionId)
 
 	assert.Nil(t.T(), err)
@@ -452,11 +466,12 @@ func (t *TokenServiceTest) TestRemoveAccessTokenCacheDeleteInternalFailed() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	accessTokenRepo.EXPECT().DeleteValue(t.authSessionId).Return(deleteAccessTokenCacheErr)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	err := tokenSvc.RemoveAccessTokenCache(t.authSessionId)
 
 	assert.Equal(t.T(), expected, err)
@@ -470,11 +485,12 @@ func (t *TokenServiceTest) TestFindRefreshTokenCacheSuccess() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	refreshTokenRepo.EXPECT().GetValue(t.refreshToken.String(), &tokenDto.RefreshTokenCache{}).Return(nil)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.FindRefreshTokenCache(t.refreshToken.String())
 
 	assert.Nil(t.T(), err)
@@ -491,11 +507,12 @@ func (t *TokenServiceTest) TestFindRefreshTokenCacheInvalid() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	refreshTokenRepo.EXPECT().GetValue(t.refreshToken.String(), &tokenDto.RefreshTokenCache{}).Return(getCacheErr)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.FindRefreshTokenCache(t.refreshToken.String())
 
 	assert.Nil(t.T(), actual)
@@ -512,11 +529,12 @@ func (t *TokenServiceTest) TestFindRefreshTokenCacheInternalError() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	refreshTokenRepo.EXPECT().GetValue(t.refreshToken.String(), &tokenDto.RefreshTokenCache{}).Return(getCacheErr)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	actual, err := tokenSvc.FindRefreshTokenCache(t.refreshToken.String())
 
 	assert.Nil(t.T(), actual)
@@ -529,11 +547,12 @@ func (t *TokenServiceTest) TestRemoveRefreshTokenCacheSuccess() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	refreshTokenRepo.EXPECT().DeleteValue(t.refreshToken.String()).Return(nil)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	err := tokenSvc.RemoveRefreshTokenCache(t.refreshToken.String())
 
 	assert.Nil(t.T(), err)
@@ -549,12 +568,170 @@ func (t *TokenServiceTest) TestRemoveRefreshTokenCacheDeleteInternalFailed() {
 	jwtService := jwt.JwtServiceMock{}
 	accessTokenRepo := mock_cache.NewMockRepository(controller)
 	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
 	uuidUtil := utils.UuidUtilMock{}
 
 	refreshTokenRepo.EXPECT().DeleteValue(t.refreshToken.String()).Return(deleteRefreshTokenCacheErr)
 
-	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, &uuidUtil)
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
 	err := tokenSvc.RemoveRefreshTokenCache(t.refreshToken.String())
+
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *TokenServiceTest) TestCreateResetPasswordTokenSuccess() {
+	tokenCache := &tokenDto.ResetPasswordTokenCache{
+		UserID: t.userId,
+	}
+
+	controller := gomock.NewController(t.T())
+
+	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
+	uuidUtil := utils.UuidUtilMock{}
+
+	uuidUtil.On("GetNewUUID").Return(t.refreshToken)
+	jwtService.On("GetConfig").Return(t.jwtConfig)
+	resetPasswordTokenRepo.EXPECT().SetValue(t.refreshToken.String(), tokenCache, t.jwtConfig.ResetTokenTTL).Return(nil)
+
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
+	actual, err := tokenSvc.CreateResetPasswordToken(t.userId)
+
+	assert.Nil(t.T(), err)
+	assert.Equal(t.T(), t.refreshToken.String(), actual)
+}
+
+func (t *TokenServiceTest) TestCreateResetPasswordTokenFailed() {
+	tokenCache := &tokenDto.ResetPasswordTokenCache{
+		UserID: t.userId,
+	}
+	cacheErr := errors.New("Internal error")
+
+	expected := cacheErr
+
+	controller := gomock.NewController(t.T())
+
+	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
+	uuidUtil := utils.UuidUtilMock{}
+
+	uuidUtil.On("GetNewUUID").Return(t.refreshToken)
+	jwtService.On("GetConfig").Return(t.jwtConfig)
+	resetPasswordTokenRepo.EXPECT().SetValue(t.refreshToken.String(), tokenCache, t.jwtConfig.ResetTokenTTL).Return(cacheErr)
+
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
+	actual, err := tokenSvc.CreateResetPasswordToken(t.userId)
+
+	assert.Equal(t.T(), "", actual)
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *TokenServiceTest) TestFindResetPasswordTokenSuccess() {
+	tokenCache := &tokenDto.ResetPasswordTokenCache{}
+
+	expected := tokenCache
+
+	controller := gomock.NewController(t.T())
+
+	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
+	uuidUtil := utils.UuidUtilMock{}
+
+	resetPasswordTokenRepo.EXPECT().GetValue(t.refreshToken.String(), tokenCache).Return(nil)
+
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
+	actual, err := tokenSvc.FindResetPasswordToken(t.refreshToken.String())
+
+	assert.Nil(t.T(), err)
+	assert.Equal(t.T(), expected, actual)
+}
+
+func (t *TokenServiceTest) TestFindResetPasswordTokenNotFound() {
+	tokenCache := &tokenDto.ResetPasswordTokenCache{}
+	cacheErr := redis.Nil
+
+	expected := status.Error(codes.InvalidArgument, cacheErr.Error())
+
+	controller := gomock.NewController(t.T())
+
+	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
+	uuidUtil := utils.UuidUtilMock{}
+
+	resetPasswordTokenRepo.EXPECT().GetValue(t.refreshToken.String(), tokenCache).Return(cacheErr)
+
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
+	actual, err := tokenSvc.FindResetPasswordToken(t.refreshToken.String())
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *TokenServiceTest) TestFindResetPasswordTokenInternalError() {
+	tokenCache := &tokenDto.ResetPasswordTokenCache{}
+	cacheErr := errors.New("Internal error")
+
+	expected := status.Error(codes.Internal, cacheErr.Error())
+
+	controller := gomock.NewController(t.T())
+
+	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
+	uuidUtil := utils.UuidUtilMock{}
+
+	resetPasswordTokenRepo.EXPECT().GetValue(t.refreshToken.String(), tokenCache).Return(cacheErr)
+
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
+	actual, err := tokenSvc.FindResetPasswordToken(t.refreshToken.String())
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *TokenServiceTest) TestRemoveResetPasswordTokenSuccess() {
+	controller := gomock.NewController(t.T())
+
+	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
+	uuidUtil := utils.UuidUtilMock{}
+
+	resetPasswordTokenRepo.EXPECT().DeleteValue(t.refreshToken.String()).Return(nil)
+
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
+	err := tokenSvc.RemoveResetPasswordToken(t.refreshToken.String())
+
+	assert.Nil(t.T(), err)
+}
+
+func (t *TokenServiceTest) TestRemoveResetPasswordTokenFailed() {
+	cacheErr := errors.New("Internal error")
+
+	expected := cacheErr
+
+	controller := gomock.NewController(t.T())
+
+	jwtService := jwt.JwtServiceMock{}
+	accessTokenRepo := mock_cache.NewMockRepository(controller)
+	refreshTokenRepo := mock_cache.NewMockRepository(controller)
+	resetPasswordTokenRepo := mock_cache.NewMockRepository(controller)
+	uuidUtil := utils.UuidUtilMock{}
+
+	resetPasswordTokenRepo.EXPECT().DeleteValue(t.refreshToken.String()).Return(cacheErr)
+
+	tokenSvc := NewService(&jwtService, accessTokenRepo, refreshTokenRepo, resetPasswordTokenRepo, &uuidUtil)
+	err := tokenSvc.RemoveResetPasswordToken(t.refreshToken.String())
 
 	assert.Equal(t.T(), expected, err)
 }

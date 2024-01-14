@@ -29,3 +29,7 @@ type RefreshTokenCache struct {
 	UserID        string        `json:"user_id"`
 	Role          constant.Role `json:"role"`
 }
+
+type ResetPasswordTokenCache struct {
+	UserID string `json:"user_id"`
+}

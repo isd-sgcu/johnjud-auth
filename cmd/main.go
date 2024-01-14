@@ -9,6 +9,7 @@ import (
 	cacheRp "github.com/isd-sgcu/johnjud-auth/internal/repository/cache"
 	userRp "github.com/isd-sgcu/johnjud-auth/internal/repository/user"
 	authSvc "github.com/isd-sgcu/johnjud-auth/internal/service/auth"
+	emailSvc "github.com/isd-sgcu/johnjud-auth/internal/service/email"
 	jwtSvc "github.com/isd-sgcu/johnjud-auth/internal/service/jwt"
 	tokenSvc "github.com/isd-sgcu/johnjud-auth/internal/service/token"
 	userSvc "github.com/isd-sgcu/johnjud-auth/internal/service/user"
@@ -132,12 +133,14 @@ func main() {
 
 	accessTokenCache := cacheRp.NewRepository(cacheDb)
 	refreshTokenCache := cacheRp.NewRepository(cacheDb)
+	resetPasswordCache := cacheRp.NewRepository(cacheDb)
 
 	jwtStrategy := strategy.NewJwtStrategy(conf.Jwt.Secret)
 	jwtService := jwtSvc.NewService(conf.Jwt, jwtStrategy, jwtUtil)
-	tokenService := tokenSvc.NewService(jwtService, accessTokenCache, refreshTokenCache, uuidUtil)
+	tokenService := tokenSvc.NewService(jwtService, accessTokenCache, refreshTokenCache, resetPasswordCache, uuidUtil)
 
-	authService := authSvc.NewService(authRepo, userRepo, tokenService, bcryptUtil)
+	emailService := emailSvc.NewService(conf.Sendgrid)
+	authService := authSvc.NewService(authRepo, userRepo, tokenService, emailService, bcryptUtil, conf.Auth)
 
 	grpc_health_v1.RegisterHealthServer(grpcServer, health.NewServer())
 	authPb.RegisterAuthServiceServer(grpcServer, authService)

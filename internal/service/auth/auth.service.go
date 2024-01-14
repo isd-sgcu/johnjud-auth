@@ -2,12 +2,14 @@ package auth
 
 import (
 	"context"
-
+	"fmt"
+	"github.com/isd-sgcu/johnjud-auth/cfgldr"
 	"github.com/isd-sgcu/johnjud-auth/internal/constant"
 	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
 	"github.com/isd-sgcu/johnjud-auth/internal/utils"
 	"github.com/isd-sgcu/johnjud-auth/pkg/repository/auth"
 	"github.com/isd-sgcu/johnjud-auth/pkg/repository/user"
+	"github.com/isd-sgcu/johnjud-auth/pkg/service/email"
 	"github.com/isd-sgcu/johnjud-auth/pkg/service/token"
 	"github.com/rs/zerolog/log"
 
@@ -23,15 +25,19 @@ type serviceImpl struct {
 	authRepo     auth.Repository
 	userRepo     user.Repository
 	tokenService token.Service
+	emailService email.Service
 	bcryptUtil   utils.IBcryptUtil
+	config       cfgldr.Auth
 }
 
-func NewService(authRepo auth.Repository, userRepo user.Repository, tokenService token.Service, bcryptUtil utils.IBcryptUtil) authProto.AuthServiceServer {
+func NewService(authRepo auth.Repository, userRepo user.Repository, tokenService token.Service, emailService email.Service, bcryptUtil utils.IBcryptUtil, config cfgldr.Auth) authProto.AuthServiceServer {
 	return &serviceImpl{
 		authRepo:     authRepo,
 		userRepo:     userRepo,
 		tokenService: tokenService,
+		emailService: emailService,
 		bcryptUtil:   bcryptUtil,
+		config:       config,
 	}
 }
 
@@ -162,4 +168,32 @@ func (s *serviceImpl) SignOut(_ context.Context, request *authProto.SignOutReque
 	}
 
 	return &authProto.SignOutResponse{IsSuccess: true}, nil
+}
+
+func (s *serviceImpl) ForgotPassword(_ context.Context, request *authProto.ForgotPasswordRequest) (*authProto.ForgotPasswordResponse, error) {
+	user := &model.User{}
+	err := s.userRepo.FindByEmail(request.Email, user)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, constant.UserNotFoundErrorMessage)
+	}
+
+	resetPasswordToken, err := s.tokenService.CreateResetPasswordToken(user.ID.String())
+	if err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	resetPasswordURL := fmt.Sprintf("%s/reset-password/%s", s.config.ClientURL, resetPasswordToken)
+	emailSubject := constant.ResetPasswordSubject
+	emailContent := fmt.Sprintf("Please click the following url to reset password %s", resetPasswordURL)
+	if err := s.emailService.SendEmail(emailSubject, user.Firstname, user.Email, emailContent); err != nil {
+		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
+	}
+
+	return &authProto.ForgotPasswordResponse{
+		Url: resetPasswordURL,
+	}, nil
+}
+
+func (s *serviceImpl) ResetPassword(_ context.Context, request *authProto.ResetPasswordRequest) (*authProto.ResetPasswordResponse, error) {
+	return nil, nil
 }
