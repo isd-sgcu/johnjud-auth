@@ -36,6 +36,7 @@ type AuthServiceTest struct {
 	refreshTokenRequest   *authProto.RefreshTokenRequest
 	validateRequest       *authProto.ValidateRequest
 	forgotPasswordRequest *authProto.ForgotPasswordRequest
+	resetPasswordRequest  *authProto.ResetPasswordRequest
 	authConfig            cfgldr.Auth
 }
 
@@ -67,6 +68,10 @@ func (t *AuthServiceTest) SetupTest() {
 	forgotPasswordRequest := &authProto.ForgotPasswordRequest{
 		Email: faker.Email(),
 	}
+	resetPasswordRequest := &authProto.ResetPasswordRequest{
+		Token:    faker.Word(),
+		Password: faker.Password(),
+	}
 	authConfig := cfgldr.Auth{
 		ClientURL: "localhost",
 	}
@@ -78,6 +83,7 @@ func (t *AuthServiceTest) SetupTest() {
 	t.validateRequest = validateRequest
 	t.refreshTokenRequest = refreshTokenRequest
 	t.forgotPasswordRequest = forgotPasswordRequest
+	t.resetPasswordRequest = resetPasswordRequest
 	t.authConfig = authConfig
 }
 
@@ -893,6 +899,311 @@ func (t *AuthServiceTest) TestForgotPasswordSendEmailFailed() {
 
 	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
 	actual, err := authSvc.ForgotPassword(t.ctx, t.forgotPasswordRequest)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *AuthServiceTest) TestResetPasswordSuccess() {
+	resetTokenCache := &tokenDto.ResetPasswordTokenCache{
+		UserID: faker.UUIDDigit(),
+	}
+	userDb := &model.User{
+		Base: model.Base{
+			ID: uuid.New(),
+		},
+		Email:     faker.Email(),
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
+	}
+	comparePasswordErr := errors.New("Internal error")
+	hashedPassword := faker.Word()
+	updateUserDb := &model.User{
+		Base: model.Base{
+			ID: userDb.ID,
+		},
+		Email:     userDb.Email,
+		Password:  hashedPassword,
+		Firstname: userDb.Firstname,
+		Lastname:  userDb.Lastname,
+		Role:      userDb.Role,
+	}
+
+	expected := &authProto.ResetPasswordResponse{
+		IsSuccess: true,
+	}
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("FindResetPasswordToken", t.resetPasswordRequest.Token).Return(resetTokenCache, nil)
+	userRepo.On("FindById", resetTokenCache.UserID, &model.User{}).Return(userDb, nil)
+	bcryptUtil.On("CompareHashedPassword", userDb.Password, t.resetPasswordRequest.Password).Return(comparePasswordErr)
+	bcryptUtil.On("GenerateHashedPassword", t.resetPasswordRequest.Password).Return(hashedPassword, nil)
+	userRepo.On("Update", resetTokenCache.UserID, updateUserDb).Return(updateUserDb, nil)
+	tokenService.On("RemoveResetPasswordToken", t.resetPasswordRequest.Token).Return(nil)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ResetPassword(t.ctx, t.resetPasswordRequest)
+
+	assert.Nil(t.T(), err)
+	assert.Equal(t.T(), expected, actual)
+}
+
+func (t *AuthServiceTest) TestResetPasswordFindTokenFailed() {
+	findTokenErr := errors.New("Internal error")
+
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("FindResetPasswordToken", t.resetPasswordRequest.Token).Return(nil, findTokenErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ResetPassword(t.ctx, t.resetPasswordRequest)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *AuthServiceTest) TestResetPasswordFindUserNotFound() {
+	resetTokenCache := &tokenDto.ResetPasswordTokenCache{
+		UserID: faker.UUIDDigit(),
+	}
+	findUserErr := gorm.ErrRecordNotFound
+
+	expected := status.Error(codes.NotFound, constant.UserNotFoundErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("FindResetPasswordToken", t.resetPasswordRequest.Token).Return(resetTokenCache, nil)
+	userRepo.On("FindById", resetTokenCache.UserID, &model.User{}).Return(nil, findUserErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ResetPassword(t.ctx, t.resetPasswordRequest)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *AuthServiceTest) TestResetPasswordFindUserInternalError() {
+	resetTokenCache := &tokenDto.ResetPasswordTokenCache{
+		UserID: faker.UUIDDigit(),
+	}
+	findUserErr := errors.New("Internal error")
+
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("FindResetPasswordToken", t.resetPasswordRequest.Token).Return(resetTokenCache, nil)
+	userRepo.On("FindById", resetTokenCache.UserID, &model.User{}).Return(nil, findUserErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ResetPassword(t.ctx, t.resetPasswordRequest)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *AuthServiceTest) TestResetPasswordSamePassword() {
+	resetTokenCache := &tokenDto.ResetPasswordTokenCache{
+		UserID: faker.UUIDDigit(),
+	}
+	userDb := &model.User{
+		Base: model.Base{
+			ID: uuid.New(),
+		},
+		Email:     faker.Email(),
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
+	}
+
+	expected := status.Error(codes.InvalidArgument, constant.IncorrectPasswordErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("FindResetPasswordToken", t.resetPasswordRequest.Token).Return(resetTokenCache, nil)
+	userRepo.On("FindById", resetTokenCache.UserID, &model.User{}).Return(userDb, nil)
+	bcryptUtil.On("CompareHashedPassword", userDb.Password, t.resetPasswordRequest.Password).Return(nil)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ResetPassword(t.ctx, t.resetPasswordRequest)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *AuthServiceTest) TestResetPasswordGenerateHashedPasswordFailed() {
+	resetTokenCache := &tokenDto.ResetPasswordTokenCache{
+		UserID: faker.UUIDDigit(),
+	}
+	comparePasswordErr := errors.New("Internal error")
+	userDb := &model.User{
+		Base: model.Base{
+			ID: uuid.New(),
+		},
+		Email:     faker.Email(),
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
+	}
+	generatePasswordErr := errors.New("Internal error")
+
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("FindResetPasswordToken", t.resetPasswordRequest.Token).Return(resetTokenCache, nil)
+	userRepo.On("FindById", resetTokenCache.UserID, &model.User{}).Return(userDb, nil)
+	bcryptUtil.On("CompareHashedPassword", userDb.Password, t.resetPasswordRequest.Password).Return(comparePasswordErr)
+	bcryptUtil.On("GenerateHashedPassword", t.resetPasswordRequest.Password).Return("", generatePasswordErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ResetPassword(t.ctx, t.resetPasswordRequest)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *AuthServiceTest) TestResetPasswordUpdateUserFailed() {
+	resetTokenCache := &tokenDto.ResetPasswordTokenCache{
+		UserID: faker.UUIDDigit(),
+	}
+	userDb := &model.User{
+		Base: model.Base{
+			ID: uuid.New(),
+		},
+		Email:     faker.Email(),
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
+	}
+	comparePasswordErr := errors.New("Internal error")
+	hashedPassword := faker.Word()
+	updateUserDb := &model.User{
+		Base: model.Base{
+			ID: userDb.ID,
+		},
+		Email:     userDb.Email,
+		Password:  hashedPassword,
+		Firstname: userDb.Firstname,
+		Lastname:  userDb.Lastname,
+		Role:      userDb.Role,
+	}
+	updateUserErr := errors.New("Internal error")
+
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("FindResetPasswordToken", t.resetPasswordRequest.Token).Return(resetTokenCache, nil)
+	userRepo.On("FindById", resetTokenCache.UserID, &model.User{}).Return(userDb, nil)
+	bcryptUtil.On("CompareHashedPassword", userDb.Password, t.resetPasswordRequest.Password).Return(comparePasswordErr)
+	bcryptUtil.On("GenerateHashedPassword", t.resetPasswordRequest.Password).Return(hashedPassword, nil)
+	userRepo.On("Update", resetTokenCache.UserID, updateUserDb).Return(nil, updateUserErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ResetPassword(t.ctx, t.resetPasswordRequest)
+
+	assert.Nil(t.T(), actual)
+	assert.Equal(t.T(), expected, err)
+}
+
+func (t *AuthServiceTest) TestResetPasswordRemoveTokenFailed() {
+	resetTokenCache := &tokenDto.ResetPasswordTokenCache{
+		UserID: faker.UUIDDigit(),
+	}
+	userDb := &model.User{
+		Base: model.Base{
+			ID: uuid.New(),
+		},
+		Email:     faker.Email(),
+		Password:  faker.Password(),
+		Firstname: faker.FirstName(),
+		Lastname:  faker.LastName(),
+		Role:      constant.USER,
+	}
+	comparePasswordErr := errors.New("Internal error")
+	hashedPassword := faker.Word()
+	updateUserDb := &model.User{
+		Base: model.Base{
+			ID: userDb.ID,
+		},
+		Email:     userDb.Email,
+		Password:  hashedPassword,
+		Firstname: userDb.Firstname,
+		Lastname:  userDb.Lastname,
+		Role:      userDb.Role,
+	}
+	removeTokenErr := errors.New("Internal error")
+
+	expected := status.Error(codes.Internal, constant.InternalServerErrorMessage)
+
+	controller := gomock.NewController(t.T())
+
+	authRepo := mock_auth.NewMockRepository(controller)
+	userRepo := user.UserRepositoryMock{}
+	tokenService := token.TokenServiceMock{}
+	emailService := email.EmailServiceMock{}
+	bcryptUtil := utils.BcryptUtilMock{}
+
+	tokenService.On("FindResetPasswordToken", t.resetPasswordRequest.Token).Return(resetTokenCache, nil)
+	userRepo.On("FindById", resetTokenCache.UserID, &model.User{}).Return(userDb, nil)
+	bcryptUtil.On("CompareHashedPassword", userDb.Password, t.resetPasswordRequest.Password).Return(comparePasswordErr)
+	bcryptUtil.On("GenerateHashedPassword", t.resetPasswordRequest.Password).Return(hashedPassword, nil)
+	userRepo.On("Update", resetTokenCache.UserID, updateUserDb).Return(updateUserDb, nil)
+	tokenService.On("RemoveResetPasswordToken", t.resetPasswordRequest.Token).Return(removeTokenErr)
+
+	authSvc := NewService(authRepo, &userRepo, &tokenService, &emailService, &bcryptUtil, t.authConfig)
+	actual, err := authSvc.ResetPassword(t.ctx, t.resetPasswordRequest)
 
 	assert.Nil(t.T(), actual)
 	assert.Equal(t.T(), expected, err)
