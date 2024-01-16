@@ -1,5 +1,5 @@
 server:
-	go run ./cmd/.
+	. ./tools/export-env.sh ; go run ./cmd/.
 
 mock-gen:
 	mockgen -source ./pkg/repository/cache/cache.repository.go -destination ./mocks/repository/cache/cache.mock.go
