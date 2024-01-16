@@ -48,31 +48,67 @@ type Config struct {
 }
 
 func LoadConfig() (*Config, error) {
+	dbCfgLdr := viper.New()
+	dbCfgLdr.SetEnvPrefix("DB")
+	dbCfgLdr.AutomaticEnv()
+	dbCfgLdr.AllowEmptyEnv(false)
 	dbConfig := Database{}
-	LoadEnvGroup(&dbConfig, "DB")
+	if err := dbCfgLdr.Unmarshal(&dbConfig); err != nil {
+		return nil, err
+	}
 
+	appCfgLdr := viper.New()
+	appCfgLdr.SetEnvPrefix("APP")
+	appCfgLdr.AutomaticEnv()
+	appCfgLdr.AllowEmptyEnv(false)
 	appConfig := App{}
-	LoadEnvGroup(&appConfig, "APP")
+	if err := appCfgLdr.Unmarshal(&appConfig); err != nil {
+		return nil, err
+	}
 
-	jwtConfig := &Jwt{}
-	LoadEnvGroup(jwtConfig, "JWT")
+	jwtCfgLdr := viper.New()
+	jwtCfgLdr.SetEnvPrefix("JWT")
+	jwtCfgLdr.AutomaticEnv()
+	jwtCfgLdr.AllowEmptyEnv(false)
+	jwtConfig := Jwt{}
+	if err := jwtCfgLdr.Unmarshal(&jwtConfig); err != nil {
+		return nil, err
+	}
 
-	redisConfig := &Redis{}
-	LoadEnvGroup(redisConfig, "REDIS")
+	redisCfgLdr := viper.New()
+	redisCfgLdr.SetEnvPrefix("REDIS")
+	redisCfgLdr.AutomaticEnv()
+	redisCfgLdr.AllowEmptyEnv(false)
+	redisConfig := Redis{}
+	if err := redisCfgLdr.Unmarshal(&redisConfig); err != nil {
+		return nil, err
+	}
 
-	authConfig := &Auth{}
-	LoadEnvGroup(authConfig, "AUTH")
+	authCfgLdr := viper.New()
+	authCfgLdr.SetEnvPrefix("AUTH")
+	authCfgLdr.AutomaticEnv()
+	authCfgLdr.AllowEmptyEnv(false)
+	authConfig := Auth{}
+	if err := authCfgLdr.Unmarshal(&authConfig); err != nil {
+		return nil, err
+	}
 
-	sendgridConfig := &Sendgrid{}
-	LoadEnvGroup(sendgridConfig, "SENDGRID")
+	sendgridCfgLdr := viper.New()
+	sendgridCfgLdr.SetEnvPrefix("SENDRID")
+	sendgridCfgLdr.AutomaticEnv()
+	sendgridCfgLdr.AllowEmptyEnv(false)
+	sendgridConfig := Sendgrid{}
+	if err := sendgridCfgLdr.Unmarshal(&sendgridConfig); err != nil {
+		return nil, err
+	}
 
 	config := &Config{
 		Database: dbConfig,
 		App:      appConfig,
-		Jwt:      *jwtConfig,
-		Redis:    *redisConfig,
-		Auth:     *authConfig,
-		Sendgrid: *sendgridConfig,
+		Jwt:      jwtConfig,
+		Redis:    redisConfig,
+		Auth:     authConfig,
+		Sendgrid: sendgridConfig,
 	}
 
 	return config, nil
@@ -80,15 +116,4 @@ func LoadConfig() (*Config, error) {
 
 func (ac *App) IsDevelopment() bool {
 	return ac.Env == "development"
-}
-
-func LoadEnvGroup(config interface{}, prefix string) (err error) {
-	cfgLdr := viper.New()
-	cfgLdr.SetEnvPrefix(prefix)
-	cfgLdr.AutomaticEnv()
-	cfgLdr.AllowEmptyEnv(false)
-	if err := cfgLdr.Unmarshal(&config); err != nil {
-		return err
-	}
-	return nil
 }
