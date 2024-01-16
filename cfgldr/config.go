@@ -48,23 +48,11 @@ type Config struct {
 }
 
 func LoadConfig() (*Config, error) {
-	dbCfgLdr := viper.New()
-	dbCfgLdr.SetEnvPrefix("DB")
-	dbCfgLdr.AutomaticEnv()
-	dbCfgLdr.AllowEmptyEnv(false)
 	dbConfig := Database{}
-	if err := dbCfgLdr.Unmarshal(&dbConfig); err != nil {
-		return nil, err
-	}
+	LoadEnvGroup(&dbConfig, "DB")
 
-	appCfgLdr := viper.New()
-	appCfgLdr.SetEnvPrefix("APP")
-	appCfgLdr.AutomaticEnv()
-	dbCfgLdr.AllowEmptyEnv(false)
 	appConfig := App{}
-	if err := appCfgLdr.Unmarshal(&appConfig); err != nil {
-		return nil, err
-	}
+	LoadEnvGroup(&appConfig, "APP")
 
 	jwtConfig := &Jwt{}
 	LoadEnvGroup(jwtConfig, "JWT")
