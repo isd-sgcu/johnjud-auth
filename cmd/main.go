@@ -3,6 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
+
 	"github.com/isd-sgcu/johnjud-auth/cfgldr"
 	"github.com/isd-sgcu/johnjud-auth/database"
 	authRp "github.com/isd-sgcu/johnjud-auth/internal/repository/auth"
@@ -13,12 +20,6 @@ import (
 	jwtSvc "github.com/isd-sgcu/johnjud-auth/internal/service/jwt"
 	tokenSvc "github.com/isd-sgcu/johnjud-auth/internal/service/token"
 	userSvc "github.com/isd-sgcu/johnjud-auth/internal/service/user"
-	"net"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-	"time"
 
 	"github.com/isd-sgcu/johnjud-auth/internal/strategy"
 	"github.com/isd-sgcu/johnjud-auth/internal/utils"
@@ -96,7 +97,7 @@ func main() {
 			Msg("Failed to load config")
 	}
 
-	db, err := database.InitPostgresDatabase(&conf.Database, conf.App.Debug)
+	db, err := database.InitPostgresDatabase(&conf.Database, conf.App.IsDevelopment())
 	if err != nil {
 		log.Fatal().
 			Err(err).

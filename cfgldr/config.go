@@ -1,74 +1,106 @@
 package cfgldr
 
 import (
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
 type Database struct {
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	Name     string `mapstructure:"name"`
-	Username string `mapstructure:"username"`
-	Password string `mapstructure:"password"`
-	SSL      string `mapstructure:"ssl"`
+	Url string `mapstructure:"URL"`
 }
 
 type App struct {
-	Port   int    `mapstructure:"port"`
-	Debug  bool   `mapstructure:"debug"`
-	Secret string `mapstructure:"secret"`
+	Port   int    `mapstructure:"PORT"`
+	Env    string `mapstructure:"ENV"`
+	Secret string `mapstructure:"SECRET"`
 }
 
 type Jwt struct {
-	Secret          string `mapstructure:"secret"`
-	ExpiresIn       int    `mapstructure:"expires_in"`
-	RefreshTokenTTL int    `mapstructure:"refresh_token_ttl"`
-	Issuer          string `mapstructure:"issuer"`
-	ResetTokenTTL   int    `mapstructure:"reset_token_ttl"`
+	Secret          string `mapstructure:"SECRET"`
+	ExpiresIn       int    `mapstructure:"EXPIRES_IN"`
+	RefreshTokenTTL int    `mapstructure:"REFRESH_TOKEN_TTL"`
+	Issuer          string `mapstructure:"ISSUER"`
+	ResetTokenTTL   int    `mapstructure:"RESET_TOKEN_TTL"`
 }
 
 type Redis struct {
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	Password string `mapstructure:"password"`
+	Host     string `mapstructure:"HOST"`
+	Port     int    `mapstructure:"PORT"`
+	Password string `mapstructure:"PASSWORD"`
 }
 
 type Auth struct {
-	ClientURL string `mapstructure:"client_url"`
+	ClientURL string `mapstructure:"CLIENT_URL"`
 }
 
 type Sendgrid struct {
-	ApiKey  string `mapstructure:"api_key"`
-	Name    string `mapstructure:"name"`
-	Address string `mapstructure:"address"`
+	ApiKey  string `mapstructure:"API_KEY"`
+	Name    string `mapstructure:"NAME"`
+	Address string `mapstructure:"ADDRESS"`
 }
 
 type Config struct {
-	App      App      `mapstructure:"app"`
-	Database Database `mapstructure:"database"`
-	Jwt      Jwt      `mapstructure:"jwt"`
-	Redis    Redis    `mapstructure:"redis"`
-	Auth     Auth     `mapstructure:"auth"`
-	Sendgrid Sendgrid `mapstructure:"sendgrid"`
+	App      App
+	Database Database
+	Jwt      Jwt
+	Redis    Redis
+	Auth     Auth
+	Sendgrid Sendgrid
 }
 
-func LoadConfig() (config *Config, err error) {
-	viper.AddConfigPath("./config")
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-
-	viper.AutomaticEnv()
-
-	err = viper.ReadInConfig()
-	if err != nil {
-		return nil, errors.Wrap(err, "error occurs while reading the config")
+func LoadConfig() (*Config, error) {
+	dbCfgLdr := viper.New()
+	dbCfgLdr.SetEnvPrefix("DB")
+	dbCfgLdr.AutomaticEnv()
+	dbCfgLdr.AllowEmptyEnv(false)
+	dbConfig := Database{}
+	if err := dbCfgLdr.Unmarshal(&dbConfig); err != nil {
+		return nil, err
 	}
 
-	err = viper.Unmarshal(&config)
-	if err != nil {
-		return nil, errors.Wrap(err, "error occurs while unmarshal the config")
+	appCfgLdr := viper.New()
+	appCfgLdr.SetEnvPrefix("APP")
+	appCfgLdr.AutomaticEnv()
+	dbCfgLdr.AllowEmptyEnv(false)
+	appConfig := App{}
+	if err := appCfgLdr.Unmarshal(&appConfig); err != nil {
+		return nil, err
 	}
 
-	return
+	jwtConfig := &Jwt{}
+	LoadEnvGroup(jwtConfig, "JWT")
+
+	redisConfig := &Redis{}
+	LoadEnvGroup(redisConfig, "REDIS")
+
+	authConfig := &Auth{}
+	LoadEnvGroup(authConfig, "AUTH")
+
+	sendgridConfig := &Sendgrid{}
+	LoadEnvGroup(sendgridConfig, "SENDGRID")
+
+	config := &Config{
+		Database: dbConfig,
+		App:      appConfig,
+		Jwt:      *jwtConfig,
+		Redis:    *redisConfig,
+		Auth:     *authConfig,
+		Sendgrid: *sendgridConfig,
+	}
+
+	return config, nil
+}
+
+func (ac *App) IsDevelopment() bool {
+	return ac.Env == "development"
+}
+
+func LoadEnvGroup(config interface{}, prefix string) (err error) {
+	cfgLdr := viper.New()
+	cfgLdr.SetEnvPrefix(prefix)
+	cfgLdr.AutomaticEnv()
+	cfgLdr.AllowEmptyEnv(false)
+	if err := cfgLdr.Unmarshal(&config); err != nil {
+		return err
+	}
+	return nil
 }
