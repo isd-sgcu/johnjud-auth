@@ -9,7 +9,7 @@ services:
       - 3002:3002
     environment:
       - APP_PORT=3004
-      - APP_ENV=development
+      - APP_ENV=production
       - APP_SECRET=secret
       - DB_URL=postgres://root:root@johnjud-local-db:5432/johnjud_db
       - JWT_SECRET=secret
