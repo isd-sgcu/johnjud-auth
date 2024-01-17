@@ -16,9 +16,6 @@ COPY . .
 # Build the application
 RUN go build -o server ./cmd/main.go
 
-# Copy config files
-COPY ./config ./config
-
 # Adding the grpc_health_probe
 RUN GRPC_HEALTH_PROBE_VERSION=v0.3.1 && \
     wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
@@ -35,9 +32,6 @@ COPY --from=base /bin/grpc_health_probe ./
 
 # Copy execute file
 COPY --from=base /app/server ./
-
-# Copy config files
-COPY --from=base /app/config ./config
 
 # Set ENV to production
 ENV GO_ENV production
