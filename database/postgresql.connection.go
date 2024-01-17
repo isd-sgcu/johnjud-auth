@@ -9,7 +9,7 @@ import (
 )
 
 func InitPostgresDatabase(conf *cfgldr.Database, isDebug bool) (db *gorm.DB, err error) {
-	gormConf := &gorm.Config{}
+	gormConf := &gorm.Config{TranslateError: true}
 
 	if !isDebug {
 		gormConf.Logger = gormLogger.Default.LogMode(gormLogger.Silent)
