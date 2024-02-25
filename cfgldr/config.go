@@ -94,7 +94,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	sendgridCfgLdr := viper.New()
-	sendgridCfgLdr.SetEnvPrefix("SENDRID")
+	sendgridCfgLdr.SetEnvPrefix("SENDGRID")
 	sendgridCfgLdr.AutomaticEnv()
 	sendgridCfgLdr.AllowEmptyEnv(false)
 	sendgridConfig := Sendgrid{}
