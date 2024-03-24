@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+
 	"github.com/isd-sgcu/johnjud-auth/cfgldr"
 	"github.com/isd-sgcu/johnjud-auth/internal/constant"
 	"github.com/isd-sgcu/johnjud-auth/internal/domain/model"
@@ -182,7 +183,7 @@ func (s *serviceImpl) ForgotPassword(_ context.Context, request *authProto.Forgo
 		return nil, status.Error(codes.Internal, constant.InternalServerErrorMessage)
 	}
 
-	resetPasswordURL := fmt.Sprintf("%s/reset-password/%s", s.config.ClientURL, resetPasswordToken)
+	resetPasswordURL := fmt.Sprintf("%s/admin/reset-password/%s", s.config.ClientURL, resetPasswordToken)
 	emailSubject := constant.ResetPasswordSubject
 	emailContent := fmt.Sprintf("Please click the following url to reset password %s", resetPasswordURL)
 	if err := s.emailService.SendEmail(emailSubject, user.Firstname, user.Email, emailContent); err != nil {
